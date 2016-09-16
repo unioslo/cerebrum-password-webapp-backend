@@ -1,0 +1,15 @@
+flask
+flask-sqlalchemy
+flask-migrate
+flask-cors
+flask-restplus
+passlib
+itsdangerous
+marshmallow
+pytz
+ipython
+psycopg2
+pytest
+pytest-xdist
+pytest-watch
+uwsgi

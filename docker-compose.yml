@@ -1,0 +1,34 @@
+version: "2"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile-app
+    networks:
+      - mediaplay
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/usr/src/app
+    working_dir: /usr/src/app
+    depends_on:
+      - db
+    command: python runserver.py
+
+  db:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile-db
+    networks:
+      - mediaplay
+    volumes:
+      - ./db/main:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+networks:
+  mediaplay:
+    driver: bridge

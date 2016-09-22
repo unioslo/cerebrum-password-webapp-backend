@@ -1,0 +1,5 @@
+tox
+virtualenv
+pytest
+pytest-xdist
+pytest-watch

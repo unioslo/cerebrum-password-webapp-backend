@@ -1,15 +1,13 @@
-flask
-flask-sqlalchemy
-flask-migrate
+flask >= 0.11
+werkzeug >= 0.9
+flask-jwt
 flask-cors
-flask-restplus
+six
 passlib
 itsdangerous
 marshmallow
 pytz
-ipython
 psycopg2
-pytest
-pytest-xdist
-pytest-watch
 uwsgi
+blinker
+PyJWT

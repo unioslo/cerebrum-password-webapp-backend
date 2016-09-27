@@ -111,7 +111,7 @@ def setup_package():
 
 
 if __name__ == "__main__":
-    print("version: {!s}".format(get_version_number()))
+    print("pofh version: {!s}".format(get_version_number()))
     print("packages: {!r}".format(get_packages()))
-    print("HERE: {!s}".format(HERE))
+    print("")
     setup_package()

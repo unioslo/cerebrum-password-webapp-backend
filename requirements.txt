@@ -1,13 +1,11 @@
-flask >= 0.11
 werkzeug >= 0.9
-flask-jwt
+flask >= 0.11
 flask-cors
-six
-passlib
-itsdangerous
 marshmallow
-pytz
-psycopg2
 uwsgi
+six
+requests
+pytz
 blinker
 PyJWT
+phonenumbers

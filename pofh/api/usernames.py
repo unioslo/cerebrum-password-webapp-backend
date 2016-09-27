@@ -7,41 +7,47 @@ from flask import Blueprint
 from marshmallow import fields, Schema
 
 from .. import auth
+from .. import idm
 from . import utils
 
 
 API = Blueprint('usernames', __name__, url_prefix='/usernames')
 
-AUTH_NAMESPACE = 'id_exists'
+NS_IDENTITY_FOUND = 'identity-found'
 
 
-class UsernamesAuthSchema(Schema):
-    """ Check if a password is good enough. """
+class IdentitySchema(Schema):
     identifier_type = fields.String(required=True, allow_none=True)
     identifier = fields.String(required=True, allow_none=False)
 
 
 @API.route('/auth', methods=['POST'])
-@utils.validate_schema(UsernamesAuthSchema)
+@utils.validate_schema(IdentitySchema)
 def authenticate():
+    """ Identify person. """
     data = utils.get_request_data(request)
-    # TODO: Look up accounts for (data.identifier_type, data.identifier)
-    person_id = 0
 
-    # if not ok: raise HTTPError
+    # TODO: Check recaptcha
+    client = idm.get_idm_client()
+    person_id = client.get_person(data["identifier_type"], data["identifier"])
 
-    t = auth.token.JWTAuthToken.new(namespace=AUTH_NAMESPACE,
+    if person_id is None:
+        # TODO: Proper exception
+        raise Exception("Invalid person id")
+
+    t = auth.token.JWTAuthToken.new(namespace=NS_IDENTITY_FOUND,
                                     identity=str(person_id))
 
+    # TODO: Record stats?
     return jsonify({'token': auth.encode_token(t), })
 
 
-@API.route('/usernames', methods=['GET', ])
-@auth.require_jwt(namespaces=[AUTH_NAMESPACE, ])
+@API.route('/list', methods=['GET', ])
+@auth.require_jwt(namespaces=[NS_IDENTITY_FOUND, ])
 def list_usernames():
     """ List usernames for the current JWT token. """
     person_id = g.current_token.identity
-    # TODO: Lookup usernames
-    usernames = ['foo', 'bar', 'baz', 'person_id:{!s}'.format(person_id)]
-
+    client = idm.get_idm_client()
+    usernames = client.get_usernames(person_id)
+    # TODO: Record stats?
     return jsonify({'usernames': usernames, })

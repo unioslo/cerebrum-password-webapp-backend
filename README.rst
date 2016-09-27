@@ -55,7 +55,16 @@ To install the module using the setup script, you'll need to run::
 
 Run
 ---
-TODO
+To run the application using `gunicorn`_: ::
+
+    $ gunicorn pofh:wsgi
+
+To run the application using the builtin flask server: ::
+
+    $ pofhd
+    $ # OR
+    $ python -m pofh
+
 
 Run tests
 ---------
@@ -116,3 +125,4 @@ TODO
 .. _virtualenv: https://virtualenv.pypa.io/en/stable/
 .. _py.test: http://doc.pytest.org/en/latest/
 .. _frontend: https://bitbucket.usit.uio.no/projects/CRB/repos/cerebrum-password-webapp-frontend/browse
+.. _gunicorn: http://gunicorn.org/

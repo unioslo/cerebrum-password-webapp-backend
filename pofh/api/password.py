@@ -30,8 +30,8 @@ class BasicAuthSchema(Schema):
 
 
 @API.route('/auth', methods=['POST'])
-@utils.validate_schema(BasicAuthSchema)
-def authenticate():
+@utils.input_schema(BasicAuthSchema)
+def authenticate(data):
     """ Authenticate using username and password. """
     data = utils.get_request_data(request)
 
@@ -49,9 +49,8 @@ def authenticate():
 
 @API.route('/set', methods=['POST'])
 @require_jwt(namespaces=[NS_BASIC_AUTH, ])
-@utils.validate_schema(ChangePasswordSchema)
-def change_password():
-    data = utils.get_request_data(request)
+@utils.input_schema(ChangePasswordSchema)
+def change_password(data):
     username = g.current_token.identity
     client = get_idm_client()
 

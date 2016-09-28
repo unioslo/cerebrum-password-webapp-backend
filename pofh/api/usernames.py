@@ -22,8 +22,8 @@ class IdentitySchema(Schema):
 
 
 @API.route('/auth', methods=['POST'])
-@utils.validate_schema(IdentitySchema)
-def authenticate():
+@utils.input_schema(IdentitySchema)
+def authenticate(data):
     """ Identify person. """
     data = utils.get_request_data(request)
 

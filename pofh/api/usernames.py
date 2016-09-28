@@ -1,5 +1,10 @@
 # encoding: utf-8
-""" API to list usernames. """
+""" List usernames.
+
+This module presents an API that lets users list all their user accounts by
+identifying themselves.
+
+"""
 from __future__ import unicode_literals, absolute_import
 
 from flask import request, g, jsonify
@@ -21,7 +26,7 @@ class IdentitySchema(Schema):
     identifier = fields.String(required=True, allow_none=False)
 
 
-@API.route('/auth', methods=['POST'])
+@API.route('/identify', methods=['POST'])
 @utils.input_schema(IdentitySchema)
 def authenticate(data):
     """ Identify person. """

@@ -1,5 +1,11 @@
 # encoding: utf-8
-""" API to list usernames. """
+""" Authenticate and change password.
+
+This module presents an API that lets users change their passord by
+identifying themselves, and verifying their identity by using a nonce sent to
+their mobile phone.
+
+"""
 from __future__ import unicode_literals, absolute_import
 
 from flask import request, g, jsonify
@@ -55,7 +61,7 @@ def clear_nonce(identifier):
     pass
 
 
-@API.route('/auth', methods=['POST'])
+@API.route('/identify', methods=['POST'])
 @utils.input_schema(SmsIdentitySchema)
 def authenticate(data):
     """ Check submitted person info and send sms nonce. """

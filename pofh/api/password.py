@@ -1,5 +1,10 @@
 # encoding: utf-8
-""" API to list usernames. """
+""" Authenticate and change password.
+
+This module presents an API that lets users change their passord by
+authenticating with their existing username and password.
+
+"""
 from __future__ import unicode_literals, absolute_import
 
 from flask import request, g, jsonify
@@ -29,7 +34,7 @@ class BasicAuthSchema(Schema):
     password = fields.String(required=True, allow_none=False)
 
 
-@API.route('/auth', methods=['POST'])
+@API.route('/authenticate', methods=['POST'])
 @utils.input_schema(BasicAuthSchema)
 def authenticate(data):
     """ Authenticate using username and password. """

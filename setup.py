@@ -104,6 +104,12 @@ def setup_package():
         tests_require=list(
             get_requirements('test-requirements.txt')),
 
+        entry_points={
+            'console_scripts': [
+                'pofhd = pofh.__main__:main'
+            ]
+        },
+
         cmdclass={
             'test': Tox
         },

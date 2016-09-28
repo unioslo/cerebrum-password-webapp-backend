@@ -77,6 +77,7 @@ def from_config(config):
     # Contact types
     for contact_type in config.get('CEREBRUM_CONTACT_SETTINGS', []):
         client.add_contact_type(ContactType.from_config(contact_type))
+    return client
 
 
 class CerebrumClient(client.IdmClient):
@@ -157,6 +158,7 @@ class CerebrumClient(client.IdmClient):
             timeout=self._timeout
         )
         response.raise_for_status()
+        # TODO: Handle error?
         return response
 
     def _do_post(self, relurl, headers=None, d=None):
@@ -180,13 +182,14 @@ class CerebrumClient(client.IdmClient):
             timeout=self._timeout
         )
         response.raise_for_status()
+        # TODO: Handle error?
         return response
 
     def get_person(self, idtype, idvalue):
         """ Look up person id from a unique id. """
         data = self._do_get(
             self._PERSON_LOOKUP,
-            {
+            q={
                 'source_system': ['SAP', 'FS', ],
                 'id_type': idtype,
                 'external_id': idvalue,
@@ -199,7 +202,7 @@ class CerebrumClient(client.IdmClient):
         """ Check if a given user can use the sms password reset service. """
         groups = self._do_get(
             self._ACCOUNT_GROUPS.format(username=username),
-            {
+            q={
                 'indirect_memberships': True,
             }
         )
@@ -227,7 +230,7 @@ class CerebrumClient(client.IdmClient):
     def verify_current_password(self, username, password):
         result = self._do_post(
             self._PASSW_VERIFY.format(username=username),
-            {
+            d={
                 'password': password,
             }
         )
@@ -236,7 +239,7 @@ class CerebrumClient(client.IdmClient):
     def check_new_password(self, username, password):
         result = self._do_post(
             self._PASSW_VERIFY.format(username=username),
-            {
+            d={
                 'password': password,
             }
         )
@@ -246,7 +249,7 @@ class CerebrumClient(client.IdmClient):
         raise NotImplementedError()
         result = self._do_post(
             self._PASSW_SET.format(username=username),
-            {
+            d={
                 'password': password,
             }
         )

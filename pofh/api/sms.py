@@ -10,6 +10,7 @@ from ..auth import require_jwt, encode_token
 from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client
 from ..sms import send_sms
+from ..recaptcha import require_recaptcha
 from . import utils
 
 
@@ -56,12 +57,12 @@ def clear_nonce(identifier):
 
 
 @API.route('/auth', methods=['POST'])
+@require_recaptcha()
 @utils.validate_schema(SmsIdentitySchema)
 def authenticate():
     """ Check submitted person info and send sms nonce. """
     data = utils.get_request_data(request)
 
-    # TODO: Check recaptcha
     client = get_idm_client()
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 

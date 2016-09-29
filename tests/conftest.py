@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """ py.test test configuration and common fixtures. """
-from __future__ import print_function, absolute_import, division
+from __future__ import unicode_literals, absolute_import, print_function
 
 import pytest
 from collections import namedtuple

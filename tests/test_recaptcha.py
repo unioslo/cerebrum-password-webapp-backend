@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """ Unit tests for pofh.recaptcha """
+from __future__ import unicode_literals, absolute_import, print_function
 
 import pytest
 import requests_mock

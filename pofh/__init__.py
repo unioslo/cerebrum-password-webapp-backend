@@ -53,9 +53,8 @@ class WsgiApp(object):
 
     Delays app init until called.
     """
-
     @staticmethod
-    def create():
+    def create(config=None):
         """ Create application.
 
         :return Flask: The assembled and configured Flask application.
@@ -70,12 +69,16 @@ class WsgiApp(object):
         app.config.from_object(DefaultConfig())
 
         # Read config
-        if app.config.from_envvar(CONFIG_ENVIRON_NAME, silent=True):
-            print("Loaded config from $POFH_CONFIG ({!s})".format(
-                os.environ['POFH_CONFIG']))
-        if app.config.from_pyfile(CONFIG_FILE_NAME, silent=True):
-            print("Loaded config from intance folder ({!s})".format(
-                os.path.join(app.instance_path, CONFIG_FILE_NAME)))
+        if config:
+            if app.config.from_pyfile(config, silent=True):
+                print("Loaded config from argument ({!s})".format(config))
+        else:
+            if app.config.from_envvar(CONFIG_ENVIRON_NAME, silent=True):
+                print("Loaded config from ${!s} ({!s})".format(
+                    CONFIG_ENVIRON_NAME, os.environ[CONFIG_ENVIRON_NAME]))
+            if app.config.from_pyfile(CONFIG_FILE_NAME, silent=True):
+                print("Loaded config from intance folder ({!s})".format(
+                    os.path.join(app.instance_path, CONFIG_FILE_NAME)))
 
         # setup CORS support
         cors = CORS()

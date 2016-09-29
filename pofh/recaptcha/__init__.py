@@ -68,6 +68,11 @@ class ReCaptcha(object):
     def enabled(self, value):
         self._enabled = bool(value)
 
+    def _check(self, data):
+        r = requests.post(self.verify_url, data=data)
+        r.raise_for_status()
+        return r.json()["success"]
+
     def verify(self, value, remoteip):
         self.signal_start.send(
             self, value=value, remoteip=remoteip)
@@ -78,13 +83,9 @@ class ReCaptcha(object):
             "remoteip": remoteip,
         }
         try:
-            r = requests.get(self.verify_url, params=data)
-            r.raise_for_status()
-            status = r.json()["success"]
-            # status = True
+            status = self._check(data)
             self.signal_done.send(
-                self,
-                value=value, remoteip=remoteip, response=r, status=status)
+                self, value=value, remoteip=remoteip, status=status)
             return status
         except Exception as e:
             self.signal_error.send(
@@ -95,7 +96,7 @@ class ReCaptcha(object):
 _recaptcha = ReCaptcha(None, None, None)
 
 
-def require_recaptcha(field="recaptcha"):
+def require_recaptcha(field="g-recaptcha-response"):
     def wrap(func):
         def wrapper(*args, **kwargs):
             if _recaptcha.enabled:
@@ -120,6 +121,5 @@ def init_app(app):
         app.config.setdefault(k, v)
 
     if app.config['USE_RECAPTCHA']:
-        print "setup"
         _recaptcha = from_config(app.config)
         _recaptcha.enabled = True

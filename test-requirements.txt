@@ -3,3 +3,4 @@ virtualenv
 pytest
 pytest-xdist
 pytest-watch
+requests-mock

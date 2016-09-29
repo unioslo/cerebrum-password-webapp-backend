@@ -5,10 +5,9 @@ Configuration
 -------------
 
 IDM_CLIENT (str)
-    Chooses the IdM backend.
-    Currently supported:
+    Chooses the IdM backend. Currently supported:
      - mock
-     - crb-rest
+     - cerebrum-api
 
 """
 from __future__ import absolute_import, unicode_literals
@@ -16,12 +15,6 @@ from __future__ import absolute_import, unicode_literals
 from flask import g, current_app
 from warnings import warn
 from . import client
-
-
-class DefaultClient(client.MockClient):
-    def __init__(self, *args, **kwargs):
-        warn(RuntimeWarning("No IdM client configured (IDM_CLIENT)"))
-        super(DefaultClient, self).__init__(*args, **kwargs)
 
 
 def get_idm_client():
@@ -34,12 +27,9 @@ def get_idm_client():
 
 def build_idm_client(config):
     """ Fetch sms dispatcher from config. """
-    # default
-    if not getattr(config, 'IDM_CLIENT', None):
-        return DefaultClient()
 
     # mock sms dispatcher
-    if config['IDM_CLIENT'] == 'mock':
+    if config.get('IDM_CLIENT', 'mock') == 'mock':
         return client.MockClient()
 
     # uio_gateway sms dispatcher
@@ -53,5 +43,6 @@ def build_idm_client(config):
 
 def init_app(app):
     """ Use app configuration to set up session backend. """
-    # TODO: Validate config?
-    pass
+    if not app.config.get('IDM_CLIENT', None):
+        warn(RuntimeWarning("No IdM client configured (IDM_CLIENT)"))
+    # TODO: Make sure we can get a client from current config?

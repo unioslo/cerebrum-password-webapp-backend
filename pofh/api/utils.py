@@ -20,15 +20,30 @@ def get_request_data(req):
 
 def validate_schema(schema_type):
     """ automatically validate schema. """
+    schema = schema_type()
+
     def wrap(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            schema = schema_type()
-            validate = schema.load(get_request_data(request))
-            if (validate.errors):
-                current_app.logger.debug("form errors")
+            errors = schema.validate(get_request_data(request))
+            if (errors):
                 # TODO: Render better error message
-                abort(400, {'msg': 'Invalid request data', 'errors': validate.errors})
+                abort(400, {'msg': 'Invalid request data', 'errors': errors})
             return func(*args, **kwargs)
+        return wrapper
+    return wrap
+
+
+def input_schema(schema_type):
+    schema = schema_type()
+
+    def wrap(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            result = schema.load(get_request_data(request))
+            if (result.errors):
+                # TODO: Render better error message
+                abort(400, {'msg': 'Invalid request data', 'errors': result.errors})
+            return func(result.data, *args, **kwargs)
         return wrapper
     return wrap

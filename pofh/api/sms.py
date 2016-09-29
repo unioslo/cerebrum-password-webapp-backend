@@ -1,5 +1,11 @@
 # encoding: utf-8
-""" API to list usernames. """
+""" Authenticate and change password.
+
+This module presents an API that lets users change their passord by
+identifying themselves, and verifying their identity by using a nonce sent to
+their mobile phone.
+
+"""
 from __future__ import unicode_literals, absolute_import
 
 from flask import request, g, jsonify
@@ -56,13 +62,11 @@ def clear_nonce(identifier):
     pass
 
 
-@API.route('/auth', methods=['POST'])
+@API.route('/identify', methods=['POST'])
 @require_recaptcha()
-@utils.validate_schema(SmsIdentitySchema)
-def authenticate():
+@utils.input_schema(SmsIdentitySchema)
+def authenticate(data):
     """ Check submitted person info and send sms nonce. """
-    data = utils.get_request_data(request)
-
     client = get_idm_client()
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 
@@ -103,10 +107,9 @@ def authenticate():
 
 @API.route('/verify')
 @require_jwt(namespaces=[NS_SMS_SENT, ])
-@utils.validate_schema(NonceSchema)
-def verify_code():
+@utils.input_schema(NonceSchema)
+def verify_code(data):
     """ Check submitted sms nonce. """
-    data = utils.get_request_data(request)
     identifier = g.current_token.identity
 
     if not check_nonce(identifier, data["nonce"]):
@@ -124,10 +127,9 @@ def verify_code():
 
 @API.route('/set')
 @require_jwt(namespaces=[NS_CODE_VERIFIED, ])
-@utils.validate_schema(ResetPasswordSchema)
-def change_password():
+@utils.input_schema(ResetPasswordSchema)
+def change_password(data):
     """ Set a new password. """
-    data = utils.get_request_data(request)
     username = g.current_token.identity
     client = get_idm_client()
 

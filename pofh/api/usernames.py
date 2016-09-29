@@ -13,6 +13,7 @@ from marshmallow import fields, Schema
 
 from .. import auth
 from .. import idm
+from ..recaptcha import require_recaptcha
 from . import utils
 
 
@@ -27,12 +28,10 @@ class IdentitySchema(Schema):
 
 
 @API.route('/identify', methods=['POST'])
+@require_recaptcha()
 @utils.input_schema(IdentitySchema)
 def authenticate(data):
     """ Identify person. """
-    data = utils.get_request_data(request)
-
-    # TODO: Check recaptcha
     client = idm.get_idm_client()
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 

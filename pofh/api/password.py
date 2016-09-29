@@ -14,6 +14,7 @@ from marshmallow import fields, Schema
 from ..auth import require_jwt, encode_token
 from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client
+from ..recaptcha import require_recaptcha
 from . import utils
 
 
@@ -35,12 +36,10 @@ class BasicAuthSchema(Schema):
 
 
 @API.route('/authenticate', methods=['POST'])
+@require_recaptcha()
 @utils.input_schema(BasicAuthSchema)
 def authenticate(data):
     """ Authenticate using username and password. """
-    data = utils.get_request_data(request)
-
-    # TODO: Check recaptcha
     client = get_idm_client()
     if not client.verify_current_password(data["username"], data["password"]):
         # TODO: Proper exception

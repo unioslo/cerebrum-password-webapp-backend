@@ -16,6 +16,7 @@ from ..auth import require_jwt, encode_token
 from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client
 from ..sms import send_sms
+from ..recaptcha import require_recaptcha
 from . import utils
 
 
@@ -62,10 +63,10 @@ def clear_nonce(identifier):
 
 
 @API.route('/identify', methods=['POST'])
+@require_recaptcha()
 @utils.input_schema(SmsIdentitySchema)
 def authenticate(data):
     """ Check submitted person info and send sms nonce. """
-    # TODO: Check recaptcha
     client = get_idm_client()
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 
@@ -109,7 +110,6 @@ def authenticate(data):
 @utils.input_schema(NonceSchema)
 def verify_code(data):
     """ Check submitted sms nonce. """
-    data = utils.get_request_data(request)
     identifier = g.current_token.identity
 
     if not check_nonce(identifier, data["nonce"]):
@@ -128,9 +128,8 @@ def verify_code(data):
 @API.route('/set')
 @require_jwt(namespaces=[NS_CODE_VERIFIED, ])
 @utils.input_schema(ResetPasswordSchema)
-def change_password():
+def change_password(data):
     """ Set a new password. """
-    data = utils.get_request_data(request)
     username = g.current_token.identity
     client = get_idm_client()
 

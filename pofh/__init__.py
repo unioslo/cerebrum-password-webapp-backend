@@ -32,6 +32,7 @@ from flask import Flask
 from flask_cors import CORS
 from . import api
 from . import auth
+from . import recaptcha
 
 
 __VERSION__ = '0.1.0'
@@ -79,6 +80,7 @@ class WsgiApp(object):
         # setup CORS support
         cors = CORS()
         cors.init_app(app)
+        recaptcha.init_app(app)
 
         # setup api
         api.init_app(app)

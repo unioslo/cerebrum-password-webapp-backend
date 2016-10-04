@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # encoding: utf-8
-""" Unit tests for app.config """
+""" Unit tests for pofh.sms """
+from __future__ import unicode_literals, absolute_import, print_function
 
 import pytest
 import phonenumbers
 from pofh.sms import dispatcher
-
-from collections import namedtuple
 
 
 @pytest.fixture
@@ -69,20 +68,6 @@ def smserror():
         def send(self, number, message):
             raise RuntimeError("err")
     return _err()
-
-
-@pytest.fixture
-def catcher():
-    Recv = namedtuple('Recv', ('sender', 'args'))
-
-    class _catcher(object):
-        def __init__(self, signal):
-            signal.connect(self)
-            self.caught = []
-
-        def __call__(self, sender, **kwargs):
-            self.caught.append(Recv(sender, kwargs))
-    return _catcher
 
 
 def test_signal_pre(mock, catcher, valid_number):

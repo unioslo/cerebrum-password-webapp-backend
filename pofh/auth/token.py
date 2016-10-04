@@ -1,5 +1,5 @@
 # encoding: utf-8
-""" JWT Auth token for the . """
+""" JWT Auth token. """
 from __future__ import unicode_literals, absolute_import
 
 from datetime import timedelta

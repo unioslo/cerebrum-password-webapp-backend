@@ -1,13 +1,16 @@
 # encoding: utf-8
-""" Flask token authorization.
+""" Flask JWT token authorization.
 
 Settings
 --------
+When ``init_app`` is called on an application, the following config values are
+read from the application config dict:
+
 JWT_ISSUER
     'iss' (issuer) claim value for auth tokens.
 
 JWT_ALGORITHM
-    override the default signing algorithm used in jwt tokens
+    override the default signing algorithm used in jwt tokens.
 
 JWT_AUTH_SCHEME
     Identitfy tokens in Authorization headers
@@ -24,24 +27,6 @@ JWT_LEEWAY
 JWT_SECRET_KEY
     Secret key for signing tokens, and checking token signatures.
 
-
-Example
--------
-
-    app = Flask('foo')
-    init_app(app)
-
-    @app.route('/require')
-    @require_jwt(namespaces=['foo', 'bar'])
-    def test():
-        return "Hello {!s}!\n".format(g.current_token.sub)
-
-    @app.route('/auth/foo/<str:identity>')
-    def auth_foo(identity):
-        token = JWTAuthToken.new(namespace='foo', identity=identity)
-        return jsonify(
-            {'token': token.jwt_encode(app.config['JWT_SECRET_KEY'])})
-
 """
 
 from datetime import timedelta
@@ -54,11 +39,11 @@ from .token import JWTAuthToken
 
 DEFAULTS = {
     'JWT_ISSUER': None,
-    'JWT_AUTH_SCHEME': 'JWT',
-    'JWT_LEEWAY': timedelta(seconds=1),
     'JWT_ALGORITHM': JWTAuthToken.JWT_ALGORITHM,
+    'JWT_AUTH_SCHEME': 'JWT',
     'JWT_EXPIRATION': JWTAuthToken.DEFAULT_EXP,
     'JWT_NOT_BEFORE': JWTAuthToken.DEFAULT_NBF,
+    'JWT_LEEWAY': timedelta(seconds=1),
 }
 
 
@@ -162,7 +147,7 @@ def _check_for_jwt():
     if not scheme:
         return
     if scheme != current_app.config['JWT_AUTH_SCHEME']:
-        current_app.logger.info("Non-JWT auth header ({!s})".format(scheme))
+        current_app.logger.debug("Non-JWT auth header ({!s})".format(scheme))
         return
 
     try:

@@ -1,5 +1,5 @@
 # encoding: utf-8
-""" Assembled API. """
+""" The password app API. """
 from __future__ import unicode_literals, absolute_import
 
 from flask import g, jsonify
@@ -50,9 +50,19 @@ def init_app(app):
     for code in _exc.default_exceptions:
         app.errorhandler(code)(handle_api_error)
 
-    @app.route('/refresh', methods=['POST', ])
+    @app.route('/renew', methods=['POST', ])
     @auth.require_jwt()
     def renew_session_jwt():
-        """ Renew the current session token. """
+        """ Renew the current JSON Web Token.
+
+        Request
+            Request body should be empty. Request headers should include a
+            valid JWT.
+
+        Response
+            Response includes a JSON document with the updated JWT:
+            ``{"token": "..."}``
+
+        """
         g.current_token.renew()
         return jsonify({'token': auth.encode_token(g.current_token), })

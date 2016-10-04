@@ -1,25 +1,29 @@
 # encoding: utf-8
-""" Google Recaptcha.
+"""
+This sub-package includes functionality for verifying a Google reCAPTCHA
+response included in forms.
 
 Configuration
 -------------
+The following settings are used from the Flask configuration:
 
-USE_RECAPTCHA (bool)
+USE_RECAPTCHA (``bool``)
     Set to True to enable Google ReCAPTCHA.
 
-RECAPTCHA_SITE_KEY (str)
+RECAPTCHA_SITE_KEY (``str``)
     The site key for ReCAPTCHA.
 
-RECAPTCHA_SECRET_KEY
+RECAPTCHA_SECRET_KEY (``str``)
     The secret key for ReCAPTCHA.
 
-RECAPTCHA_VERIFY_URL (str)
-    The URL used to verify a CAPTCHA field
+RECAPTCHA_VERIFY_URL (``str``)
+    The URL used to verify a CAPTCHA field.
 
 """
 from __future__ import unicode_literals
 
 from flask import request, abort, jsonify
+from functools import wraps
 import requests
 import blinker
 
@@ -97,6 +101,7 @@ _recaptcha = ReCaptcha(None, None, None)
 
 def require_recaptcha(field="recaptcha"):
     def wrap(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             if _recaptcha.enabled:
                 if request.is_json:

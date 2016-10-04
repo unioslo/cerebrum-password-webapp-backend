@@ -3,7 +3,6 @@
 
 Configuration
 -------------
-
 SMS_GATEWAY_URL (str)
     The URL to the SMS endpoint (HTTP POST).
 

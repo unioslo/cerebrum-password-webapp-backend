@@ -1,5 +1,5 @@
 # encoding: utf-8
-""" Abstract SMS dispatchers. """
+""" Abstract SMS dispatcher implementations.  """
 from __future__ import absolute_import, unicode_literals
 
 import blinker

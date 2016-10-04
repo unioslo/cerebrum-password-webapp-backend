@@ -7,7 +7,7 @@ authenticating with their existing username and password.
 """
 from __future__ import unicode_literals, absolute_import
 
-from flask import request, g, jsonify
+from flask import g, jsonify
 from flask import Blueprint
 from marshmallow import fields, Schema
 
@@ -39,7 +39,18 @@ class BasicAuthSchema(Schema):
 @require_recaptcha()
 @utils.input_schema(BasicAuthSchema)
 def authenticate(data):
-    """ Authenticate using username and password. """
+    """ Authenticate using username and password.
+
+    Request
+        Request body should include two attributes, ``username`` and
+        ``password``. The attributes should be
+        ``application/x-www-form-urlencoded`` or ``application/json``.
+
+    Response
+        The response includes a JSON document with a JWT that can be used to
+        set a new password: ``{"token": "..."}``
+
+    """
     client = get_idm_client()
     if not client.verify_current_password(data["username"], data["password"]):
         # TODO: Proper exception
@@ -55,6 +66,18 @@ def authenticate(data):
 @require_jwt(namespaces=[NS_BASIC_AUTH, ])
 @utils.input_schema(ChangePasswordSchema)
 def change_password(data):
+    """ Set a new password.
+
+    Request
+        Request headers should include a valid JWT.
+        Request body should include two attributes, ``old_password`` and
+        ``new_password``. The attributes should be
+        ``application/x-www-form-urlencoded`` or ``application/json``.
+
+    Response
+        TODO
+
+    """
     username = g.current_token.identity
     client = get_idm_client()
 

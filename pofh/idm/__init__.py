@@ -18,6 +18,10 @@ from . import client
 
 
 def get_idm_client():
+    """ Fetch an IdM client from the current app config.
+
+    Requires an app context.
+    """
     try:
         return g.idm_client
     except AttributeError:

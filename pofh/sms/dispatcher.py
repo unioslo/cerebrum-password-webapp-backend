@@ -6,14 +6,6 @@ import blinker
 import phonenumbers
 
 
-class SmsError(RuntimeError):
-    pass
-
-
-class SmsResponseError(SmsError):
-    pass
-
-
 class SmsDispatcher(object):
     """ Abstract SMS Dispatcher. """
 

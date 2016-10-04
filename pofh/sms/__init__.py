@@ -1,13 +1,12 @@
 # encoding: utf-8
-"""
-This sub-package includes functionality for communicating with an SMS
-Gateway.
+""" Flask SMS dispatcher.
 
-Configuration
--------------
-The following settings are used from the Flask configuration:
+Common settings
+---------------
+When ``init_app`` is called on an application, the following config values are
+read from the application config dict:
 
-``SMS_DISPATCHER`` (:py:class:`str`, :py:class:`unicode`)
+``SMS_DISPATCHER`` (:py:class:`str`)
     Chooses the SMS backend.
     Currently supported:
 
@@ -16,7 +15,7 @@ The following settings are used from the Flask configuration:
 
     Note that each module accepts additional configuration options.
 
-``SMS_DEFAULT_REGION`` (:py:class:`str`, :py:class:`unicode`)
+``SMS_DEFAULT_REGION`` (:py:class:`str`)
     A default region to use when parsing phone numbers. Phone numbers without
     country code prefix will be assumed to belong to this region. If not set,
     all phone numbers must include a country code prefix.

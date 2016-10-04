@@ -2,16 +2,24 @@
 pofh API
 ========
 
-TODO: Document the API.
 
+Routes
+======
+
+.. NOTE: This requires sphinxcontrib-httpdomain to be installed
 .. autoflask:: pofh:wsgi.app
    :undoc-static:
 
 
-API module
-==========
+API modules
+===========
 
-TODO: Document the API sub-package.
-
+pofh.api
+--------
 .. automodule:: pofh.api
+   :members:
+
+pofh.api.utils
+--------------
+.. automodule:: pofh.api.utils
    :members:

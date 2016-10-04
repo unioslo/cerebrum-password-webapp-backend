@@ -23,6 +23,7 @@ NS_IDENTITY_FOUND = 'identity-found'
 
 
 class IdentitySchema(Schema):
+    """ Person identity form. """
     identifier_type = fields.String(required=True, allow_none=True)
     identifier = fields.String(required=True, allow_none=False)
 
@@ -31,7 +32,17 @@ class IdentitySchema(Schema):
 @require_recaptcha()
 @utils.input_schema(IdentitySchema)
 def authenticate(data):
-    """ Identify person. """
+    """ Authenticate using person info.
+
+    Request
+        Request body should include two attributes, ``identifier_type`` and
+        ``identifier``.
+
+    Response
+        The response includes a JSON document with a JWT that can be used to
+        list usernames owned by that person: ``{"token": "..."}``
+
+    """
     client = idm.get_idm_client()
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 
@@ -49,7 +60,16 @@ def authenticate(data):
 @API.route('/list', methods=['GET', ])
 @auth.require_jwt(namespaces=[NS_IDENTITY_FOUND, ])
 def list_usernames():
-    """ List usernames for the current JWT token. """
+    """ List usernames owned by a person.
+
+    Request
+        Request headers should include a JWT that identifies the person.
+
+    Response
+        The response includes a JSON document with a list of usernames:
+        ``{"usernames": [...]}``
+
+    """
     person_id = g.current_token.identity
     client = idm.get_idm_client()
     usernames = client.get_usernames(person_id)

@@ -4,7 +4,6 @@ from __future__ import unicode_literals, absolute_import
 
 # from werkzeug.exceptions import BadRequest
 
-from flask import current_app
 from flask import request
 from flask import abort
 from functools import wraps
@@ -30,6 +29,10 @@ def validate_schema(schema_type):
                 # TODO: Render better error message
                 abort(400, {'msg': 'Invalid request data', 'errors': errors})
             return func(*args, **kwargs)
+        # TODO: Auto-document schema.
+        wrapper.__doc__ += (
+            "\nThe request body should include form data encoded as "
+            " ``application/json`` or ``application/x-www-from-urlencoded``\n")
         return wrapper
     return wrap
 
@@ -43,7 +46,12 @@ def input_schema(schema_type):
             result = schema.load(get_request_data(request))
             if (result.errors):
                 # TODO: Render better error message
-                abort(400, {'msg': 'Invalid request data', 'errors': result.errors})
+                abort(400, {'msg': 'Invalid request data',
+                            'errors': result.errors})
             return func(result.data, *args, **kwargs)
+        # TODO: Auto-document schema.
+        wrapper.__doc__ += (
+            "The request body should include form data encoded as "
+            " ``application/json`` or ``application/x-www-from-urlencoded``\n")
         return wrapper
     return wrap

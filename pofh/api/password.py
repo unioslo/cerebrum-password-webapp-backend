@@ -7,6 +7,7 @@ authenticating with their existing username and password.
 """
 from __future__ import unicode_literals, absolute_import
 
+from werkzeug.exceptions import Forbidden
 from flask import g, jsonify
 from flask import Blueprint
 from marshmallow import fields, Schema
@@ -24,7 +25,7 @@ NS_BASIC_AUTH = 'basic-auth'
 
 
 class ChangePasswordSchema(Schema):
-    """ Check if a password is good enough. """
+    """ Change password form. """
     old_password = fields.String(required=True, allow_none=False)
     new_password = fields.String(required=True, allow_none=False)
 
@@ -35,6 +36,8 @@ class BasicAuthSchema(Schema):
     password = fields.String(required=True, allow_none=False)
 
 
+# TODO: Implement Basic Auth here?
+
 @API.route('/authenticate', methods=['POST'])
 @require_recaptcha()
 @utils.input_schema(BasicAuthSchema)
@@ -43,8 +46,7 @@ def authenticate(data):
 
     Request
         Request body should include two attributes, ``username`` and
-        ``password``. The attributes should be
-        ``application/x-www-form-urlencoded`` or ``application/json``.
+        ``password``.
 
     Response
         The response includes a JSON document with a JWT that can be used to
@@ -52,9 +54,9 @@ def authenticate(data):
 
     """
     client = get_idm_client()
+
     if not client.verify_current_password(data["username"], data["password"]):
-        # TODO: Proper exception
-        raise Exception("Invalid username or password")
+        raise Forbidden("Invalid username or password")
 
     t = JWTAuthToken.new(namespace=NS_BASIC_AUTH,
                          identity=data["username"])
@@ -71,8 +73,7 @@ def change_password(data):
     Request
         Request headers should include a valid JWT.
         Request body should include two attributes, ``old_password`` and
-        ``new_password``. The attributes should be
-        ``application/x-www-form-urlencoded`` or ``application/json``.
+        ``new_password``.
 
     Response
         TODO

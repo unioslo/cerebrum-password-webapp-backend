@@ -13,18 +13,23 @@ class JWTAuthToken(object):
 
     Each token consists of a namespace (which identifies allowed actions) and
     an identity (which identifies some entity that the token is authorized to
-    act upon).
+    act upon). These values are serialized in the sub (subject) claim, as
+    <<ns>:<id>>
 
-    These values are serialized in the sub (subject) claim, as <<ns>:<id>>
+    Any claim (sub, iss, jti, iat, exp, nbf) can be set using keyword
+    arguments when creating a new token.
 
     """
 
-    NAMESPACE = None
-
     DEFAULT_EXP = timedelta(seconds=3)
+    """ Default expire time, relative to ``iat``. """
+
     DEFAULT_NBF = timedelta(seconds=0)
+    """ Default 'not before' time, relative to ``iat``. """
 
     JWT_ALGORITHM = 'HS512'
+    """ Algorithm for signing and verifying tokens. """
+
     JWT_OPTIONS = {
         'require_iat': True,
         'require_nbf': True,
@@ -39,7 +44,6 @@ class JWTAuthToken(object):
     }
 
     def __init__(self, **kwargs):
-        """ Create a new token, with a given payload. """
         self.namespace = None
         self.identity = None
         self.sub = kwargs.get('sub', ':')
@@ -57,7 +61,7 @@ class JWTAuthToken(object):
 
     @classmethod
     def new(cls, namespace=None, identity=None, issuer=None):
-        """ Create a new token, with a given namespace and identity. """
+        """ Create a new token, with a given namespace and identity.  """
         token = cls(iss=issuer)
         token.namespace = namespace
         token.identity = identity
@@ -66,13 +70,17 @@ class JWTAuthToken(object):
     def renew(self):
         """ Update token with new 'nbf' and 'exp' claims.
 
-        The new values are `now` + DEFAULT_*.
+        The new values are :py:func:`datetime.datetime.utcnow` + ``DEFAULT_*``.
         """
         self.nbf = datetime.datetime.utcnow() + self.DEFAULT_NBF
         self.exp = datetime.datetime.utcnow() + self.DEFAULT_EXP
 
     def get_payload(self):
-        """ Build a payload for this token. """
+        """ Build a payload for this token.
+
+        :rtype: dict
+        :return: A dict representation of token data.
+        """
         # TBD: Should we have datetimes or timestamps in the payload?
         payload = {
             'jti': str(self.jti),
@@ -88,21 +96,41 @@ class JWTAuthToken(object):
 
     @classmethod
     def from_payload(cls, payload):
-        """ Create a new token from a JWT payload. """
+        """ Create a new token from a JWT payload.
+
+        :param dict payload: A dict representation of token data.
+
+        :rtype: JWTAuthToken
+        :return: A token initialized with values from the payload.
+        """
         token = cls(iss=payload.get('iss'))
         for claim in ('iat', 'nbf', 'exp', 'sub', 'jti'):
             setattr(token, claim, payload[claim])
         return token
 
     def jwt_encode(self, secret):
-        """ Encode payload as JWT. """
+        """ Encode payload as JWT.
+
+        :param str secret: The secret to use for signing.
+
+        :rtype: str
+        :return: A JSON Web Token string.
+        """
         return jwt.encode(self.get_payload(),
                           secret,
                           algorithm=self.JWT_ALGORITHM)
 
     @classmethod
     def jwt_decode(cls, token_value, secret, leeway=0):
-        """ Decode and verify token. """
+        """ Decode and verify token.
+
+        :param str token_value: The JSON Web Token value.
+        :param str secret: The secret used to sign the token.
+        :param int leeway: Delta (in seconds) to accept in nbf/exp values.
+
+        :rtype: JWTAuthToken
+        :return: A token initialized with values from the decoded payload.
+        """
         payload = jwt.decode(
             token_value, secret,
             options=cls.JWT_OPTIONS,
@@ -112,6 +140,15 @@ class JWTAuthToken(object):
 
     @classmethod
     def jwt_debug(cls, token_value):
+        """ Decode, but not verify token.
+
+        :param str token_value: The JSON Web Token value.
+        :param str secret: The secret used to sign the token.
+        :param int leeway: Delta (in seconds) to accept in nbf/exp values.
+
+        :rtype: dict
+        :return: Payload from the decoded token.
+        """
         return jwt.decode(token_value, verify=False)
 
     # PROPERTIES:
@@ -148,15 +185,15 @@ class JWTAuthToken(object):
                 return l.pop(0) or None
             except IndexError:
                 return None
-        parts = value.split(':')
+        parts = value.split(':', 1)
         self.namespace = _pop(parts)
         self.identity = _pop(parts)
 
     @property
     def iat(self):
-        """ when token was issued (datetime).
+        """ when token was issued (:py:class:`datetime.datetime`).
 
-        Can be set to either a datetime or a timestamp. Is set to `now` if
+        Can be set to either a datetime or a timestamp. Is set to `utcnow` if
         deleted.
         """
         return self.__issued_at
@@ -176,10 +213,10 @@ class JWTAuthToken(object):
 
     @property
     def nbf(self):
-        """ not before time (datetime).
+        """ not before time (:py:class:`datetime.datetime`).
 
         Can be set to either a datetime, a timestamp, or a `timedelta` relative
-        to `iat`. Is set to `DEFAULT_NOT_BEFORE` if deleted.
+        to `iat`. Is set to `DEFAULT_NBF` if deleted.
         """
         if isinstance(self.__nbf, timedelta):
             return self.iat + self.__nbf
@@ -198,14 +235,14 @@ class JWTAuthToken(object):
 
     @nbf.deleter
     def nbf(self):
-        self.nbf = self.DEFAULT_NOT_BEFORE
+        self.nbf = self.DEFAULT_NBF
 
     @property
     def exp(self):
-        """ expire time (datetime).
+        """ expire time (:py:class:`datetime.datetime`).
 
         Can be set to either a datetime, a timestamp, or a `timedelta` relative
-        to `iat`. Is set to `DEFAULT_EXPIRATION` if deleted.
+        to `iat`. Is set to `DEFAULT_EXP` if deleted.
         """
         if isinstance(self.__exp, timedelta):
             return self.iat + self.__exp
@@ -223,4 +260,4 @@ class JWTAuthToken(object):
 
     @exp.deleter
     def exp(self):
-        self.exp = timedelta(seconds=self.DEFAULT_EXPIRATION)
+        self.exp = timedelta(seconds=self.DEFAULT_EXP)

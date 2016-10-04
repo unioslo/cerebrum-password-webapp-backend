@@ -6,26 +6,28 @@ Settings
 When ``init_app`` is called on an application, the following config values are
 read from the application config dict:
 
-JWT_ISSUER
-    'iss' (issuer) claim value for auth tokens.
+``JWT_ISSUER`` (:py:class:`str`)
+    Default 'iss' (issuer) claim value for auth tokens.
 
-JWT_ALGORITHM
-    override the default signing algorithm used in jwt tokens.
+``JWT_ALGORITHM`` (:py:class:`str`)
+    Override the default signing algorithm used for JWT tokens.
 
-JWT_AUTH_SCHEME
-    Identitfy tokens in Authorization headers
+``JWT_AUTH_SCHEME`` (:py:class:`str`)
+    Identitfy tokens in Authorization headers. The default is ``"JWT"``.
 
-JWT_EXPIRATION_SECONDS
+``JWT_EXPIRATION_SECONDS`` (:py:class:`int`, :py:class:`datetime.timedelta`)
     Default 'exp' claim, relative to 'iat' (issued at)
 
-JWT_NOT_BEFORE_SECONDS
-    Default 'nbf' claim, relative to 'iat' (issued at)
+``JWT_NOT_BEFORE_SECONDS`` (:py:class:`int`, :py:class:`datetime.timedelta`)
+    Default 'nbf' claim, relative to 'iat' (issued at).
 
-JWT_LEEWAY
-    Leeway when checking the 'nbf' and 'exp' claims.
+``JWT_LEEWAY`` (:py:class:`int`, :py:class:`datetime.timedelta`)
+    Leeway when checking the 'nbf' and 'exp' claims. If given as integer, we
+    will assume seconds.
 
-JWT_SECRET_KEY
-    Secret key for signing tokens, and checking token signatures.
+``JWT_SECRET_KEY`` (:py:class:`str`)
+    Secret key for signing tokens, and checking token signatures. Defaults to
+    the Flask ``SECRET_KEY`` value.
 
 """
 
@@ -98,6 +100,11 @@ def require_jwt(namespaces=None):
 
     This wrapper makes sure that a JWT with the proper subject has been
     presented in the request.
+
+    :type namespaces: NoneType, list
+    :param namespaces:
+        A list of token namespaces allowed access to the wrapped resource.
+
     """
     def wrap(func):
         @wraps(func)
@@ -109,7 +116,11 @@ def require_jwt(namespaces=None):
                 raise Forbidden("No access")
 
             # TODO: Check blacklist, etc?
+
             return func(*args, **kwargs)
+        wrapper.__doc__ += (
+            "\nThe request needs to include an ``Authorization`` header "
+            " with a valid JSON Web Token\n")
         return wrapper
     return wrap
 

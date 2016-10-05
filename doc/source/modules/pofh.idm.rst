@@ -1,19 +1,21 @@
 ========
 pofh.idm
 ========
-TODO: IdM/Cerebrum integration
-
+The IdM client performs the actual password change, and fetches information on
+users and persons.
 
 .. automodule:: pofh.idm
    :members:
 
+Clients
+=======
 
-Abstract clients
-----------------
+mock
+----
 .. automodule:: pofh.idm.client
    :members:
 
-Cerebrum client
----------------
+cerebrum-api
+------------
 .. automodule:: pofh.idm.cerebrum_api_v1
    :members:

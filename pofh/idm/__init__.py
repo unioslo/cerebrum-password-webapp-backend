@@ -4,7 +4,7 @@
 Configuration
 -------------
 
-IDM_CLIENT (str)
+IDM_CLIENT (:py:class:`str`)
     Chooses the IdM backend. Currently supported:
      - mock
      - cerebrum-api
@@ -30,7 +30,7 @@ def get_idm_client():
 
 
 def build_idm_client(config):
-    """ Fetch sms dispatcher from config. """
+    """ Fetch idm client from config.  """
 
     # mock sms dispatcher
     if config.get('IDM_CLIENT', 'mock') == 'mock':
@@ -46,7 +46,7 @@ def build_idm_client(config):
 
 
 def init_app(app):
-    """ Use app configuration to set up session backend. """
+    """ Use app configuration to verify idm client config. """
     if not app.config.get('IDM_CLIENT', None):
         warn(RuntimeWarning("No IdM client configured (IDM_CLIENT)"))
     # TODO: Make sure we can get a client from current config?

@@ -1,29 +1,7 @@
 # encoding: utf-8
-""" pofh application
-
-Configuration
--------------
-Config is loaded from:
-
-1. Default configuration.
-2. ``pofh.cfg`` in the instance folder
-   (http://flask.pocoo.org/docs/0.11/config/#instance-folders).
-3. File specified in the ``POFH_CONFIG`` environment variable.
-
-
-Run
----
-To run the server using gunicorn: ::
-
-    $ gunicorn pofh:wsgi
-
-
-To run the server using flask: ::
-
-    $ python -m pofh
-    $ # OR
-    $ pofhd
-
+"""
+This module contains the package version number, and factory methods for
+bootstrapping the module.
 """
 from __future__ import print_function, unicode_literals
 
@@ -39,25 +17,34 @@ __VERSION__ = '0.1.0'
 
 
 CONFIG_ENVIRON_NAME = 'POFH_CONFIG'
+""" Name of an environmet variable to read config file name from.
+
+This is a useful method to set a config file if the application is started
+through a third party application server like *guincorn*.
+"""
+
 CONFIG_FILE_NAME = 'pofh.cfg'
+""" Name of the config file name in the Flask application instance path. """
 
 
 class DefaultConfig(object):
-    """ Default config. """
-    # TODO
+    """ Default configuration. """
+
+    # TODO: Is this needed?
     pass
 
 
 class WsgiApp(object):
-    """ Wsgi app proxy.
+    """ Wsgi app proxy object. """
 
-    Delays app init until called.
-    """
+    # TODO: Is this really needed?
+
     @staticmethod
     def create(config=None):
         """ Create application.
 
-        :return Flask: The assembled and configured Flask application.
+        :rtype: Flask
+        :return: The assembled and configured Flask application.
         """
         # set up flask app args
         kwargs = {
@@ -104,3 +91,4 @@ class WsgiApp(object):
 
 
 wsgi = WsgiApp()
+""" WSGI app. """

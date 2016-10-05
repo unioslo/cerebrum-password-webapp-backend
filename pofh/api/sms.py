@@ -66,7 +66,25 @@ def clear_nonce(identifier):
 @require_recaptcha()
 @utils.input_schema(SmsIdentitySchema)
 def authenticate(data):
-    """ Check submitted person info and send sms nonce. """
+    """ Check submitted person info and send sms nonce.
+
+    Request
+        The request should include fields:
+
+        ``identifier_type``
+            A person identifier type.
+        ``identifier``
+            An person identifier.
+        ``username``
+            Username of a user to change passwords for.
+        ``mobile``
+            A mobile number to send the nonce to.
+
+    Response
+        The response includes a JSON document with a JWT that can be used to
+        verify the sent nonce: ``{"token": "..."}``
+
+    """
     client = get_idm_client()
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 
@@ -109,7 +127,16 @@ def authenticate(data):
 @require_jwt(namespaces=[NS_SMS_SENT, ])
 @utils.input_schema(NonceSchema)
 def verify_code(data):
-    """ Check submitted sms nonce. """
+    """ Check submitted sms nonce.
+
+    Request
+        The request should include a field with the ``nonce`` to verify.
+
+    Response
+        The response includes a JSON document with a JWT that can be used to
+        verify the nonce: ``{"token": "..."}``
+
+    """
     identifier = g.current_token.identity
 
     if not check_nonce(identifier, data["nonce"]):
@@ -129,7 +156,16 @@ def verify_code(data):
 @require_jwt(namespaces=[NS_CODE_VERIFIED, ])
 @utils.input_schema(ResetPasswordSchema)
 def change_password(data):
-    """ Set a new password. """
+    """ Check submitted sms nonce.
+
+    Request
+        The request should include a field with the ``nonce`` to verify.
+
+    Response
+        The response includes a JSON document with a JWT that can be used to
+        verify the nonce: ``{"token": "..."}``
+
+    """
     username = g.current_token.identity
     client = get_idm_client()
 

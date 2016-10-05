@@ -1,27 +1,32 @@
 # encoding: utf-8
-""" SMS Gateway module.
+""" Flask SMS dispatcher.
 
-Configuration
--------------
+Common settings
+---------------
+When ``init_app`` is called on an application, the following config values are
+read from the application config dict:
 
-SMS_DISPATCHER (str)
+``SMS_DISPATCHER`` (:py:class:`str`)
     Chooses the SMS backend.
     Currently supported:
+
      - mock
      - uio-gateway
 
-SMS_DEFAULT_REGION (str)
+    Note that each module accepts additional configuration options.
+
+``SMS_DEFAULT_REGION`` (:py:class:`str`)
     A default region to use when parsing phone numbers. Phone numbers without
     country code prefix will be assumed to belong to this region. If not set,
     all phone numbers must include a country code prefix.
 
-SMS_WHITELIST_REGIONS (list)
-    A list of regions that SMS-es can be sent to. If 'None', all regions are
+``SMS_WHITELIST_REGIONS`` (:py:class:`list`)
+    A list of regions that SMS-es can be sent to. If ``None``, all regions are
     allowed. If empty list, no regions are allowed.
 
-SMS_WHITELIST_NUMBERS (list)
+``SMS_WHITELIST_NUMBERS`` (:py:class:`list`)
     A list of phone numbers that SMS-es can be sent to (useful in testing). If
-    'None', all numbers are allowed. If empty list, no numbers are allowed.
+    ``None``, all numbers are allowed. If empty list, no numbers are allowed.
 
 """
 from __future__ import absolute_import, unicode_literals
@@ -39,6 +44,10 @@ class DefaultSmsDispatcher(dispatcher.MockSmsDispatcher):
 
 
 _dispatcher = DefaultSmsDispatcher()
+""" The currently configured dispatcher.
+
+This value is changed by calling `init_app`.
+"""
 
 
 def send_sms(number, message):
@@ -51,7 +60,15 @@ def send_sms(number, message):
 
 
 def get_sms_dispatcher(config):
-    """ Fetch sms dispatcher from config. """
+    """ Fetch sms dispatcher from config.
+
+    :param dict config:
+        Any dict-like object with configuration.
+
+    :rtype: pofh.sms.dispatcher.SmsDispatcher
+    :return: An SMS dispatcher class.
+
+    """
     # mock sms dispatcher
     if config['SMS_DISPATCHER'] == 'mock':
         return dispatcher.MockSmsDispatcher()
@@ -66,7 +83,10 @@ def get_sms_dispatcher(config):
 
 
 def init_app(app):
-    """ Use app configuration to set up session backend. """
+    """ Use app configuration to set up SMS backend.
+
+    :param flask.Flask app: The flask application
+    """
     global _dispatcher
     if app.config.get('SMS_DISPATCHER'):
         _dispatcher = get_sms_dispatcher(app.config)

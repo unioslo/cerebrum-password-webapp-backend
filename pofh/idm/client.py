@@ -1,10 +1,16 @@
 # encoding: utf-8
-""" Abstract SMS dispatchers. """
+""" Abstract IdM clients. """
 from __future__ import absolute_import, unicode_literals
 
 
 class IdmClient(object):
-    """ Idm Client. """
+    """ Idm Client specification
+
+    This class specifies the neccessary functionality that is required from an
+    IdM client.
+
+    All clients should inherit from this class.
+    """
 
     def get_person(self, idtype, idvalue):
         """ Look up person from a unique id.
@@ -81,6 +87,7 @@ class IdmClient(object):
 
 
 class MockClient(IdmClient):
+    """ An IdM mock client implementation. """
 
     # dummy data map
     _default_db = {

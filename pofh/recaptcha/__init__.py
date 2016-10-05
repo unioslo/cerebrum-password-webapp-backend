@@ -1,25 +1,28 @@
 # encoding: utf-8
-""" Google Recaptcha.
+""" This sub-package includes functionality for verifying a Google reCAPTCHA
+response included in forms.
 
-Configuration
--------------
+Settings
+--------
+The following settings are used from the Flask configuration:
 
-USE_RECAPTCHA (bool)
+``USE_RECAPTCHA`` (:py:class:`bool`)
     Set to True to enable Google ReCAPTCHA.
 
-RECAPTCHA_SITE_KEY (str)
+``RECAPTCHA_SITE_KEY`` (:py:class:`str`)
     The site key for ReCAPTCHA.
 
-RECAPTCHA_SECRET_KEY
+``RECAPTCHA_SECRET_KEY`` (:py:class:`str`)
     The secret key for ReCAPTCHA.
 
-RECAPTCHA_VERIFY_URL (str)
-    The URL used to verify a CAPTCHA field
+``RECAPTCHA_VERIFY_URL`` (:py:class:`str`)
+    The URL used to verify a CAPTCHA field.
 
 """
 from __future__ import unicode_literals
 
 from flask import request, abort, jsonify
+from functools import wraps
 import requests
 import blinker
 
@@ -47,6 +50,7 @@ def from_config(config):
 
 
 class ReCaptcha(object):
+    """ Google reCAPTCHA validator. """
 
     signal_start = blinker.Signal('recaptcha.start')
     signal_done = blinker.Signal('recaptcha.done')
@@ -59,6 +63,8 @@ class ReCaptcha(object):
 
     @property
     def enabled(self):
+        """ If recaptcha is enabled or not. """
+        # TODO: The class doesn't even look at this?
         try:
             return self._enabled
         except AttributeError:
@@ -74,6 +80,15 @@ class ReCaptcha(object):
         return r.json()["success"]
 
     def verify(self, value, remoteip):
+        """ Check a reCAPTHCA response.
+
+        :param str value: The response to check
+        :param str remoteip: An optional remoteip to include in the check
+
+        :rtype: bool
+        :return:
+            Returns `True` if the response passed validation, `False` otherwise
+        """
         self.signal_start.send(
             self, value=value, remoteip=remoteip)
 
@@ -97,7 +112,12 @@ _recaptcha = ReCaptcha(None, None, None)
 
 
 def require_recaptcha(field="g-recaptcha-response"):
+    """ Require a recaptcha field in requests.
+
+    :param str field: Which field to look for a recaptcha response in.
+    """
     def wrap(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             if _recaptcha.enabled:
                 if request.is_json:

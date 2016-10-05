@@ -1,17 +1,9 @@
 # encoding: utf-8
-""" Abstract SMS dispatchers. """
+""" Abstract SMS dispatcher implementations.  """
 from __future__ import absolute_import, unicode_literals
 
 import blinker
 import phonenumbers
-
-
-class SmsError(RuntimeError):
-    pass
-
-
-class SmsResponseError(SmsError):
-    pass
 
 
 class SmsDispatcher(object):

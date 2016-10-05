@@ -1,22 +1,19 @@
 # encoding: utf-8
 """ SMS dispatcher for the UiO gateway.
 
-Configuration
--------------
-
-SMS_GATEWAY_URL (str)
+``SMS_GATEWAY_URL`` (:py:class:`str`)
     The URL to the SMS endpoint (HTTP POST).
 
-SMS_GATEWAY_SYSTEM (str)
+``SMS_GATEWAY_SYSTEM`` (:py:class:`str`)
     The system identificator of this system.
 
-SMS_GATEWAY_USER (str)
+``SMS_GATEWAY_USER`` (:py:class:`str`)
     The gateway username.
 
-SMS_GATEWAY_PASSWORD (str)
+``SMS_GATEWAY_PASSWORD`` (:py:class:`str`)
     The gateway password.
 
-SMS_GATEWAY_TIMEOUT (float)
+``SMS_GATEWAY_TIMEOUT`` (:py:class:`float`)
     Timeout, in seconds.
 
 """
@@ -100,11 +97,7 @@ class UioGatewayDispatcher(dispatcher.SmsDispatcher):
             The phone number to send to.
         :param str message:
             The message string.
-
-        :raise SmsError: if unable to send SMS
         """
-        # TODO: Format number
-
         postdata = {
             'b': self._user,
             'p': self._pass,

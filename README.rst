@@ -32,11 +32,6 @@ The application stack should look something like:
     +--------------------------+
 
 
-Api
-===
-TODO
-
-
 Setup
 =====
 
@@ -73,11 +68,17 @@ environment you'll be running from::
 
     $ pip intsall virtualenv
 
-To run the tests::
+To run the tests, run::
 
     $ python setup.py test
-    $ # OR
+
+This will install test dependencies, and run tests with ``tox``.
+
+Alternatively, you can run: ::
+
     $ tox
+
+If you already have all the tests installed.
 
 If you already have `py.test`_ installed and don't want to run tests across
 multiple python versions, you can run::
@@ -85,10 +86,25 @@ multiple python versions, you can run::
     $ py.test tests/
 
 
+Build documentation
+-------------------
+To build the documentation, run: ::
+
+    $ python setup.py build_sphinx
+
+This will install ``pofh`` and all its dependencies in a temporary environment,
+and build the documentation in the ``build/sphinx/html`` folder.
+
+Alternatively, you can run: ::
+
+    $ sphinx-build -b html -E docs/source <build-folder>
+
+in an environment where ``pofh``, ``sphinx`` and ``sphinxcontrib-httpdomain`` have already been installed.
+
+
 Try it out with Docker
 ----------------------
-TODO
-
+TODO: Update the docker files and write documentation.
 
 
 Full setup
@@ -100,29 +116,14 @@ Frontend
 
 The default frontend application is available `here`__.
 
-
 __ `frontend`_
 
 
-IdM adapter
------------
-TODO
-
-statsd
-------
-TODO
-
-logging
--------
-TODO
-
-session db
-----------
-TODO
 
 .. Links:
 .. _tox: https://tox.readthedocs.io/en/latest/
 .. _virtualenv: https://virtualenv.pypa.io/en/stable/
 .. _py.test: http://doc.pytest.org/en/latest/
+.. _backend: https://bitbucket.usit.uio.no/projects/CRB/repos/cerebrum-password-webapp-backend/browse
 .. _frontend: https://bitbucket.usit.uio.no/projects/CRB/repos/cerebrum-password-webapp-frontend/browse
 .. _gunicorn: http://gunicorn.org/

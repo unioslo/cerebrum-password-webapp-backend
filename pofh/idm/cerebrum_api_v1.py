@@ -4,31 +4,35 @@
 Configuration
 -------------
 
-CEREBRUM_API_URL (str)
+CEREBRUM_API_URL (:py:class:`str`)
     The base URL to the API (HTTP POST).
 
-CEREBRUM_API_KEY (str)
+CEREBRUM_API_KEY (:py:class:`str`)
     API key for the Cerebrum API.
 
-CEREBRUM_API_TIMEOUT (float)
+CEREBRUM_API_TIMEOUT (:py:class:`float`)
     Timeout, in seconds.
 
-CEREBRUM_RESERVED_GROUPS (list)
+CEREBRUM_RESERVED_GROUPS (:py:class:`list`)
     A list of groups that disqualifies use of the SMS reset service. Any
     indirect member of any listed group will not be able to reset passwords
     using the SMS service.
 
-CEREBRUM_CONTACT_SETTINGS (list)
+CEREBRUM_CONTACT_SETTINGS (:py:class:`list`)
     A weighted list of contact types that can be used by the SMS reset service.
     Each item is a dict that contains the following values:
 
+    ::
+
         {
             # Source system, e.g. 'SAP', 'FS'
-            'system': str,
+            'system': :py:class:`str`,
+
             # Contact type, e.g. 'MOBILE', 'PRIVATEMOBILE'
-            'type': str,
+            'type': :py:class:`str`,
+
             # Mininum days since changed, e.g. 7, 14
-            'delay': int,
+            'delay': :py:class:`int`,
         }
 
 """

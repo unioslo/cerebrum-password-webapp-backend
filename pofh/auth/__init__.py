@@ -1,46 +1,33 @@
 # encoding: utf-8
-""" Flask token authorization.
+""" Flask JWT token authorization.
 
 Settings
 --------
-JWT_ISSUER
-    'iss' (issuer) claim value for auth tokens.
+When ``init_app`` is called on an application, the following config values are
+read from the application config dict:
 
-JWT_ALGORITHM
-    override the default signing algorithm used in jwt tokens
+``JWT_ISSUER`` (:py:class:`str`)
+    Default 'iss' (issuer) claim value for auth tokens.
 
-JWT_AUTH_SCHEME
-    Identitfy tokens in Authorization headers
+``JWT_ALGORITHM`` (:py:class:`str`)
+    Override the default signing algorithm used for JWT tokens.
 
-JWT_EXPIRATION_SECONDS
+``JWT_AUTH_SCHEME`` (:py:class:`str`)
+    Identitfy tokens in Authorization headers. The default is ``"JWT"``.
+
+``JWT_EXPIRATION_SECONDS`` (:py:class:`int`, :py:class:`datetime.timedelta`)
     Default 'exp' claim, relative to 'iat' (issued at)
 
-JWT_NOT_BEFORE_SECONDS
-    Default 'nbf' claim, relative to 'iat' (issued at)
+``JWT_NOT_BEFORE_SECONDS`` (:py:class:`int`, :py:class:`datetime.timedelta`)
+    Default 'nbf' claim, relative to 'iat' (issued at).
 
-JWT_LEEWAY
-    Leeway when checking the 'nbf' and 'exp' claims.
+``JWT_LEEWAY`` (:py:class:`int`, :py:class:`datetime.timedelta`)
+    Leeway when checking the 'nbf' and 'exp' claims. If given as integer, we
+    will assume seconds.
 
-JWT_SECRET_KEY
-    Secret key for signing tokens, and checking token signatures.
-
-
-Example
--------
-
-    app = Flask('foo')
-    init_app(app)
-
-    @app.route('/require')
-    @require_jwt(namespaces=['foo', 'bar'])
-    def test():
-        return "Hello {!s}!\n".format(g.current_token.sub)
-
-    @app.route('/auth/foo/<str:identity>')
-    def auth_foo(identity):
-        token = JWTAuthToken.new(namespace='foo', identity=identity)
-        return jsonify(
-            {'token': token.jwt_encode(app.config['JWT_SECRET_KEY'])})
+``JWT_SECRET_KEY`` (:py:class:`str`)
+    Secret key for signing tokens, and checking token signatures. Defaults to
+    the Flask ``SECRET_KEY`` value.
 
 """
 
@@ -54,11 +41,11 @@ from .token import JWTAuthToken
 
 DEFAULTS = {
     'JWT_ISSUER': None,
-    'JWT_AUTH_SCHEME': 'JWT',
-    'JWT_LEEWAY': timedelta(seconds=1),
     'JWT_ALGORITHM': JWTAuthToken.JWT_ALGORITHM,
+    'JWT_AUTH_SCHEME': 'JWT',
     'JWT_EXPIRATION': JWTAuthToken.DEFAULT_EXP,
     'JWT_NOT_BEFORE': JWTAuthToken.DEFAULT_NBF,
+    'JWT_LEEWAY': timedelta(seconds=1),
 }
 
 
@@ -113,6 +100,11 @@ def require_jwt(namespaces=None):
 
     This wrapper makes sure that a JWT with the proper subject has been
     presented in the request.
+
+    :type namespaces: NoneType, list
+    :param namespaces:
+        A list of token namespaces allowed access to the wrapped resource.
+
     """
     def wrap(func):
         @wraps(func)
@@ -124,7 +116,11 @@ def require_jwt(namespaces=None):
                 raise Forbidden("No access")
 
             # TODO: Check blacklist, etc?
+
             return func(*args, **kwargs)
+        wrapper.__doc__ += (
+            "\nThe request needs to include an ``Authorization`` header "
+            " with a valid JSON Web Token\n")
         return wrapper
     return wrap
 
@@ -162,7 +158,7 @@ def _check_for_jwt():
     if not scheme:
         return
     if scheme != current_app.config['JWT_AUTH_SCHEME']:
-        current_app.logger.info("Non-JWT auth header ({!s})".format(scheme))
+        current_app.logger.debug("Non-JWT auth header ({!s})".format(scheme))
         return
 
     try:

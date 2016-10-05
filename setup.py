@@ -85,17 +85,13 @@ class Tox(TestCommand, object):
 def setup_package():
     """ build and run setup. """
 
-    # Add test requirements
-    needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)
-    sphinx = ['sphinx'] if needs_sphinx else []
-
     setup(
         name=PACKAGE_NAME,
         description=PACKAGE_DESC,
         author=PACKAGE_AUTHOR,
         url=PACKAGE_URL,
 
-        setup_requires=['six', ] + sphinx,
+        setup_requires=['sphinx', 'sphinxcontrib-httpdomain', ] + list(get_requirements('requirements.txt')),
         version=get_version_number(),
         packages=get_packages(),
 

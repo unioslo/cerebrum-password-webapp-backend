@@ -21,3 +21,4 @@ Subpackages
    pofh.sms
    pofh.recaptcha
    pofh.idm
+   pofh.language

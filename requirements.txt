@@ -9,3 +9,4 @@ pytz
 blinker
 PyJWT
 phonenumbers
+language_tags

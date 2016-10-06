@@ -22,3 +22,4 @@ Subpackages
    pofh.recaptcha
    pofh.idm
    pofh.language
+   pofh.template

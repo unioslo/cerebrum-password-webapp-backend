@@ -12,6 +12,7 @@ from . import api
 from . import auth
 from . import recaptcha
 from . import language
+from . import template
 
 
 __VERSION__ = '0.1.0'
@@ -77,6 +78,7 @@ class WsgiApp(object):
         api.init_app(app)
         auth.init_app(app)
         language.init_app(app)
+        template.init_app(app)
 
         return app
 

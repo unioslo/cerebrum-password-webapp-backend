@@ -45,10 +45,10 @@ def init_app(app):
     app.register_blueprint(password.API)
     app.register_blueprint(sms.API)
 
-    app.errorhandler(Exception)(handle_api_error)
     # Workaround for https://github.com/pallets/flask/issues/941
-    for code in _exc.default_exceptions:
-        app.errorhandler(code)(handle_api_error)
+    if not app.config.get('DEBUG', False):
+        for code in _exc.default_exceptions:
+            app.errorhandler(code)(handle_api_error)
 
     @app.route('/renew', methods=['POST', ])
     @auth.require_jwt()

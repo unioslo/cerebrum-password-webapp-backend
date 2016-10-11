@@ -9,6 +9,7 @@ their mobile phone.
 from __future__ import unicode_literals, absolute_import
 
 from flask import request, g, jsonify
+from flask import render_template
 from flask import Blueprint
 from marshmallow import fields, Schema
 
@@ -17,6 +18,7 @@ from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client
 from ..sms import send_sms
 from ..recaptcha import require_recaptcha
+from ..template import add_template, get_localized_template
 from . import utils
 
 
@@ -24,6 +26,10 @@ API = Blueprint('sms', __name__, url_prefix='/sms')
 
 NS_SMS_SENT = 'sms-sent'
 NS_CODE_VERIFIED = 'code-verified'
+
+
+add_template('sms-code',
+             "Code: {{ code }}\nValid for {{ minutes }} minutes\n")
 
 
 class SmsIdentitySchema(Schema):
@@ -111,8 +117,9 @@ def authenticate(data):
     # TODO: generate code and send SMS
     nonce = 'foo'
     save_nonce(identifier, nonce)
-    # TODO: Proper template system? Language?
-    message = "Your code: {!s}".format(nonce)
+
+    template = get_localized_template('sms-code')
+    message = render_template(template, code=nonce, minutes=10)
     send_sms(data["mobile"], message)
 
     # TODO: Record stats?

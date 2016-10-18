@@ -5,7 +5,7 @@ from __future__ import print_function
 import os
 import argparse
 from pofh import __VERSION__ as VERSION
-from pofh import CONFIG_FILE_NAME
+from pofh import APP_CONFIG_FILE_NAME
 from pofh import wsgi
 
 
@@ -32,9 +32,9 @@ def install_config(app, args):
     if not os.access(app.instance_path, os.W_OK | os.X_OK):
         raise IOError(
             "No access to instance folder ({!s})".format(app.instance_path))
-    config_file = os.path.join(app.instance_path, CONFIG_FILE_NAME)
+    config_file = os.path.join(app.instance_path, APP_CONFIG_FILE_NAME)
     if os.path.exists(config_file) and args.backup:
-        backup_name = '{!s}.backup.{!s}'.format(CONFIG_FILE_NAME,
+        backup_name = '{!s}.backup.{!s}'.format(APP_CONFIG_FILE_NAME,
                                                 time.strftime("%Y%m%d-%H%M%S"))
         backup_file = os.path.join(app.instance_path, backup_name)
         shutil.move(config_file, backup_file)
@@ -47,7 +47,7 @@ def show_config(app, args):
     """ Print config. """
     print("Settings:")
     for setting in sorted(app.config):
-        print("  {!s}: {!r}".format(setting, wsgi.app.config[setting]))
+        print("  {!s}: {!r}".format(setting, app.config[setting]))
 
 
 def show_routes(app, args):
@@ -64,6 +64,9 @@ def run_app(app, args):
 
 def main(args=None):
     parser = argparse.ArgumentParser(description=__doc__)
+
+    # common args
+
     parser.add_argument(
         '-v', '--version',
         action='version',
@@ -78,6 +81,7 @@ def main(args=None):
 
     commands = parser.add_subparsers(help='Valid commands')
 
+    # run
     run_parser = commands.add_parser("run")
     run_parser.add_argument(
         '--host',
@@ -93,9 +97,11 @@ def main(args=None):
         help="bind server to port %(metavar)s (default: %(default)d)")
     run_parser.set_defaults(command=run_app)
 
+    # show-config
     show_conf_parser = commands.add_parser("show-config")
     show_conf_parser.set_defaults(command=show_config)
 
+    # install-config
     inst_conf_parser = commands.add_parser("install-config")
     inst_conf_parser.add_argument(
         'config',
@@ -110,6 +116,7 @@ def main(args=None):
         help="do not backup any existing config")
     inst_conf_parser.set_defaults(command=install_config)
 
+    # show-routes
     route_parser = commands.add_parser("show-routes")
     route_parser.set_defaults(command=show_routes)
 

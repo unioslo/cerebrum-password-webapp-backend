@@ -11,3 +11,6 @@ PyJWT
 phonenumbers
 language_tags
 jinja2
+redis
+flask-redis
+mockredispy

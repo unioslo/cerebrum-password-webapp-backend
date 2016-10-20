@@ -55,9 +55,9 @@ def from_config(config):
 class ReCaptcha(object):
     """ Google reCAPTCHA validator. """
 
-    signal_start = blinker.Signal('recaptcha.start')
-    signal_done = blinker.Signal('recaptcha.done')
-    signal_error = blinker.Signal('recaptcha.error')
+    signal_start = blinker.signal('recaptcha.start')
+    signal_done = blinker.signal('recaptcha.done')
+    signal_error = blinker.signal('recaptcha.error')
 
     def __init__(self, site_key, secret_key, verify_url):
         self.site_key = site_key

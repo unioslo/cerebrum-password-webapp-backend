@@ -21,6 +21,7 @@ from __future__ import absolute_import, unicode_literals
 
 import requests
 import phonenumbers
+from flask import current_app
 from . import dispatcher
 
 
@@ -112,3 +113,25 @@ class UioGatewayDispatcher(dispatcher.SmsDispatcher):
         # Raise error if error status
         response.raise_for_status()
         validate_response(response)
+
+    @dispatcher.SmsDispatcher.signal_sms_pre.connect
+    def _print_sms_pre(sender, **args):
+        current_app.logger.debug(
+            "SMS: Sending message to '{raw_number!s}'".format(**args))
+
+    @dispatcher.SmsDispatcher.signal_sms_filtered.connect
+    def _print_sms_filtered(sender, **args):
+        current_app.logger.info(
+            "SMS: Invalid or non-whitelisted number '{raw_number!s}'".format(
+                **args))
+
+    @dispatcher.SmsDispatcher.signal_sms_sent.connect
+    def _print_sms_error(sender, **args):
+        current_app.logger.error(
+            "SMS: Sending to '{raw_number!s}' failed: {error!s}".format(
+                **args))
+
+    @dispatcher.SmsDispatcher.signal_sms_sent.connect
+    def _print_sms_sent(sender, **args):
+        current_app.logger.debug(
+            "SMS: Sent message to '{raw_number!s}'".format(**args))

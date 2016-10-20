@@ -11,6 +11,7 @@ read from the application config dict:
     Currently supported:
 
      - mock
+     - debug
      - uio-gateway
 
     Note that each module accepts additional configuration options.
@@ -59,7 +60,7 @@ def send_sms(number, message):
     return _dispatcher(number, message)
 
 
-def get_sms_dispatcher(config):
+def get_sms_dispatcher(app):
     """ Fetch sms dispatcher from config.
 
     :param dict config:
@@ -70,16 +71,22 @@ def get_sms_dispatcher(config):
 
     """
     # mock sms dispatcher
-    if config['SMS_DISPATCHER'] == 'mock':
+    if app.config['SMS_DISPATCHER'] == 'mock':
         return dispatcher.MockSmsDispatcher()
 
+    if app.config['SMS_DISPATCHER'] == 'debug':
+        if not app.debug:
+            raise RuntimeError("Cannot use the 'debug' dispatcher "
+                               "without the DEBUG setting enabled")
+        return dispatcher.DebugSmsDispatcher()
+
     # uio_gateway sms dispatcher
-    if config['SMS_DISPATCHER'] == 'uio-gateway':
+    if app.config['SMS_DISPATCHER'] == 'uio-gateway':
         from . import uio_gateway
-        return uio_gateway.from_config(config)
+        return uio_gateway.from_config(app.config)
 
     raise ValueError(
-        "Invalid SMS_DISPATCHER '{!s}'".format(config['SMS_DISPATCHER']))
+        "Invalid SMS_DISPATCHER '{!s}'".format(app.config['SMS_DISPATCHER']))
 
 
 def init_app(app):
@@ -87,15 +94,19 @@ def init_app(app):
 
     :param flask.Flask app: The flask application
     """
+    app.config.setdefault('SMS_DEFAULT_REGION', None)
+    app.config.setdefault('SMS_WHITELIST_REGIONS', None)
+    app.config.setdefault('SMS_WHITELIST_NUMBERS', None)
+
     global _dispatcher
     if app.config.get('SMS_DISPATCHER'):
-        _dispatcher = get_sms_dispatcher(app.config)
+        _dispatcher = get_sms_dispatcher(app)
 
     # Default region/country code
-    _dispatcher.default_region = app.config.get('SMS_DEFAULT_REGION', None)
+    _dispatcher.default_region = app.config['SMS_DEFAULT_REGION']
 
     # Configure region whitelist
-    regions = app.config.get('SMS_WHITELIST_REGIONS', None)
+    regions = app.config['SMS_WHITELIST_REGIONS']
     if regions is not None:
         _dispatcher.whitelist_regions = True
         if not isinstance(regions, list):
@@ -104,7 +115,7 @@ def init_app(app):
             _dispatcher.add_region(r)
 
     # Configure phone number whitelist
-    numbers = app.config.get('SMS_WHITELIST_NUMBERS', None)
+    numbers = app.config['SMS_WHITELIST_NUMBERS']
     if numbers is not None:
         _dispatcher.whitelist_numbers = True
         if not isinstance(numbers, list):

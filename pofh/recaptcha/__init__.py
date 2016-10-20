@@ -21,10 +21,13 @@ The following settings are used from the Flask configuration:
 """
 from __future__ import unicode_literals
 
-from flask import request, abort, jsonify
+from werkzeug.exceptions import Forbidden
+from flask import request, current_app
+from flask import Blueprint, url_for, render_template
 from functools import wraps
 import requests
 import blinker
+from warnings import warn
 
 
 DEFAULTS = {
@@ -120,18 +123,48 @@ def require_recaptcha(field="g-recaptcha-response"):
         @wraps(func)
         def wrapper(*args, **kwargs):
             if _recaptcha.enabled:
+                current_app.logger.debug(
+                    "recaptcha: checking field '{!s}'".format(field))
                 if request.is_json:
                     data = request.json()
                 else:
                     data = request.form
-                if not _recaptcha.verify(
-                    data.get(field),
-                    request.environ.get('REMOTE_ADDR')
-                ):
-                    abort(400, jsonify({'msg': 'Invalid reCAPTCHA value', }))
+
+                if _recaptcha.verify(
+                        data.get(field),
+                        request.environ.get('REMOTE_ADDR')):
+                    current_app.logger.info("recaptcha: valid")
+                else:
+                    current_app.logger.info(
+                        "recaptcha: invalid ({!s})".format(data.get(field)))
+                    raise Forbidden("invalid recaptcha response")
+            else:
+                current_app.logger.debug("recaptcha: disabled")
             return func(*args, **kwargs)
         return wrapper
     return wrap
+
+
+TEST_FIELD_NAME = 'g-recaptcha-response'
+
+TEST_API = Blueprint('recaptcha', __name__,
+                     url_prefix='/recaptcha-test',
+                     template_folder='.')
+
+
+@TEST_API.route('/', methods=['GET', ])
+def render_page():
+    return render_template(
+        'recaptcha-test.tpl',
+        site_key=current_app.config.get('RECAPTCHA_SITE_KEY'),
+        action=url_for('.verify_response'),
+        field=TEST_FIELD_NAME)
+
+
+@TEST_API.route('/verify', methods=['POST', ])
+@require_recaptcha(field=TEST_FIELD_NAME)
+def verify_response():
+    return ('', 204)
 
 
 def init_app(app):
@@ -143,3 +176,7 @@ def init_app(app):
     if app.config['USE_RECAPTCHA']:
         _recaptcha = from_config(app.config)
         _recaptcha.enabled = True
+        if app.debug:
+            app.register_blueprint(TEST_API)
+    else:
+        warn(RuntimeWarning("Recaptcha disabled"))

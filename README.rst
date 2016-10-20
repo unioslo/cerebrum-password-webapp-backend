@@ -5,33 +5,6 @@ pofh
 Identity Management systems.
 
 
-The application stack should look something like:
-
-::
-
-    +--------------------------+
-    |         Frontend         |
-    | (HTML/CSS/JS static app) |
-    +--------------------------+
-                |
-    +-----------v--------------+
-    |        Rev-proxy         |
-    +-----------+--------------+
-                |
-    +-----------v--------------+
-    |        Gunicorn          |
-    +-----------+--------------+
-                |
-    +-----------v--------------+
-    |         Backend          |
-    |        (This app)        |
-    +-----------+--------------+
-                |
-    +-----------v--------------+
-    |          IdM             |
-    +--------------------------+
-
-
 Setup
 =====
 
@@ -107,9 +80,60 @@ Try it out with Docker
 TODO: Update the docker files and write documentation.
 
 
+Configuration
+=============
+
+App config
+----------
+The application config is read from the first available source:
+
+1. The config argument, if starting the Flask development server (``pofhd run
+   --config <file>``).
+2. A ``pofh.cfg`` file in the application instance path.
+3. The config file given by the environment variable ``$POFH_CONFIG``, if it
+   exists.
+
+Log config
+----------
+Internally, the ``pofh`` application uses the logger named ``LOGGER_NAME`` (from
+the `app config`_. If not given, the logger name defaults to ``"pofh"``.
+
+The logging can be configured by:
+
+* Setting ``LOG_CONFIG`` to a config file in the `app config`_.
+* Putting a ``logging.ini`` config file in the application instance path.
+* Configuring the loggers in the application server (e.g. ``gunicorn
+  --log-config <file>``)
+
+
 Full setup
 ==========
-TODO
+
+The application stack should look something like:
+
+::
+
+    +--------------------------+
+    |         Frontend         |
+    | (HTML/CSS/JS static app) |
+    +--------------------------+
+                |
+    +-----------v--------------+
+    |        Rev-proxy         |
+    +-----------+--------------+
+                |
+    +-----------v--------------+
+    |        Gunicorn          |
+    +-----------+--------------+
+                |
+    +-----------v--------------+
+    |         Backend          |
+    |        (This app)        |
+    +-----------+--------------+
+                |
+    +-----------v--------------+
+    |          IdM             |
+    +--------------------------+
 
 Frontend
 --------
@@ -118,6 +142,14 @@ The default frontend application is available `here`__.
 
 __ `frontend`_
 
+
+Backend
+-------
+
+See `setup`_ for setting up the backend application.
+
+TODO: setup gunicorn
+TODO: Log config (logstash handler?)
 
 
 .. Links:

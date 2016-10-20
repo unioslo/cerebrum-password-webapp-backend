@@ -15,10 +15,10 @@ read from the application config dict:
 ``JWT_AUTH_SCHEME`` (:py:class:`str`)
     Identitfy tokens in Authorization headers. The default is ``"JWT"``.
 
-``JWT_EXPIRATION_SECONDS`` (:py:class:`int`, :py:class:`datetime.timedelta`)
+``JWT_EXPIRATION`` (:py:class:`int`, :py:class:`datetime.timedelta`)
     Default 'exp' claim, relative to 'iat' (issued at)
 
-``JWT_NOT_BEFORE_SECONDS`` (:py:class:`int`, :py:class:`datetime.timedelta`)
+``JWT_NOT_BEFORE`` (:py:class:`int`, :py:class:`datetime.timedelta`)
     Default 'nbf' claim, relative to 'iat' (issued at).
 
 ``JWT_LEEWAY`` (:py:class:`int`, :py:class:`datetime.timedelta`)
@@ -113,7 +113,8 @@ def require_jwt(namespaces=None):
                 raise Challenge("Needs authentication",
                                 current_app.config['JWT_AUTH_SCHEME'])
             if namespaces and g.current_token.namespace not in namespaces:
-                raise Forbidden("No access")
+                raise Forbidden(
+                    "Invalid token: Cannot be used for this resource.")
 
             # TODO: Check blacklist, etc?
 
@@ -183,7 +184,7 @@ def init_app(app):
         app.config.setdefault(k, v)
     app.config.setdefault('JWT_SECRET_KEY', app.config['SECRET_KEY'])
 
-    def _seconds(app, key, default):
+    def _seconds(app, key):
         if isinstance(app.config[key], timedelta):
             return app.config[key]
         else:

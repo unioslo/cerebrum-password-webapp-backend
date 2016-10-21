@@ -76,7 +76,6 @@ def generate_nonce(length):
 
 def save_nonce(identifier, nonce, duration):
     """ Store a new issued nonce value. """
-    print(repr(duration))
     name = '{!s}{!s}'.format(NONCE_PREFIX, identifier)
     # NOTE: StrictRedis!
     store.setex(name, duration, nonce)

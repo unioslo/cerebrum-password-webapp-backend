@@ -62,7 +62,7 @@ def init_debug(app):
     @TEST_API.route('/<string:key>/<string:value>', methods=['PUT', ])
     def _debug_store_set(key, value):
         key = '{!s}{!s}'.format(TEST_KEY_PREFIX, key)
-        current_app.logger.info(
+        current_app.logger.debug(
             "Store-debug: Setting '{!s}' to '{!s}'".format(key, value))
         store.set(key, value)
         return ('', 204)
@@ -70,12 +70,12 @@ def init_debug(app):
     @TEST_API.route('/<string:key>', methods=['GET', ])
     def _debug_store_get(key):
         real_key = '{!s}{!s}'.format(TEST_KEY_PREFIX, key)
-        current_app.logger.info("Store-debug: Getting '{!s}'".format(real_key))
+        current_app.logger.debug("Store-debug: Getting '{!s}'".format(real_key))
         return jsonify({key: store.get(real_key)})
 
     @TEST_API.route('/', methods=['GET', ])
     def _debug_store_list():
-        current_app.logger.info("Store-debug: Listing keys")
+        current_app.logger.debug("Store-debug: Listing keys")
         data = dict()
         for key in store.scan_iter(match='{!s}*'.format(TEST_KEY_PREFIX)):
             data[key[len(TEST_KEY_PREFIX):]] = store.get(key)

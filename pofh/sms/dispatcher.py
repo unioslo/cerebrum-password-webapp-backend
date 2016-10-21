@@ -1,6 +1,6 @@
 # encoding: utf-8
 """ Abstract SMS dispatcher implementations.  """
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import, unicode_literals, print_function
 
 import blinker
 import phonenumbers
@@ -161,3 +161,26 @@ class MockSmsDispatcher(SmsDispatcher):
 
     def _send(self, number, message):
         return
+
+
+class DebugSmsDispatcher(MockSmsDispatcher):
+    """ A mock SMS dispatcher that prints SMS signals to stdout. """
+
+    @SmsDispatcher.signal_sms_pre.connect
+    def _print_sms_pre(sender, **args):
+        print(("SMS: sending message to {raw_number!s}:\n"
+               "{message!s}\n").format(**args))
+
+    @SmsDispatcher.signal_sms_filtered.connect
+    def _print_sms_filtered(sender, **args):
+        print(("SMS: filtered number {raw_number!s} "
+               "({number!s})").format(**args))
+
+    @SmsDispatcher.signal_sms_error.connect
+    def _print_sms_error(sender, **args):
+        print(("SMS: could not send to "
+               "{raw_number!s}: {error!s}").format(**args))
+
+    @SmsDispatcher.signal_sms_sent.connect
+    def _print_sms_sent(sender, **args):
+        print("SMS: sent to {raw_number!s}".format(**args))

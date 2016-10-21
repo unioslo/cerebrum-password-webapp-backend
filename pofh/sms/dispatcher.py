@@ -76,7 +76,7 @@ class SmsDispatcher(object):
         return (not self.whitelist_numbers or
                 number in self._number_whitelist)
 
-    def _transform(self, raw_number):
+    def parse(self, raw_number):
         """ Parse and transform a raw phone number.
 
         :param raw_number: The phone number to transform.
@@ -85,7 +85,7 @@ class SmsDispatcher(object):
         """
         return phonenumbers.parse(raw_number, region=self.default_region)
 
-    def _filter(self, number):
+    def filter(self, number):
         """ Filter phone number.
 
         This function can be used to make sure only valid phone numbers are
@@ -126,8 +126,8 @@ class SmsDispatcher(object):
         self.signal_sms_pre.send(self, raw_number=raw_number, message=message)
 
         # Transform and filter
-        number = self._transform(raw_number)
-        if self._filter(number):
+        number = self.parse(raw_number)
+        if self.filter(number):
             self.signal_sms_filtered.send(self,
                                           raw_number=raw_number,
                                           number=number,
@@ -166,21 +166,28 @@ class MockSmsDispatcher(SmsDispatcher):
 class DebugSmsDispatcher(MockSmsDispatcher):
     """ A mock SMS dispatcher that prints SMS signals to stdout. """
 
-    @SmsDispatcher.signal_sms_pre.connect
+    def __init__(self):
+        super(DebugSmsDispatcher, self).__init__()
+        self.signal_sms_pre.connect(self._print_sms_pre, sender=self)
+        self.signal_sms_filtered.connect(self._print_sms_filtered, sender=self)
+        self.signal_sms_error.connect(self._print_sms_error, sender=self)
+        self.signal_sms_sent.connect(self._print_sms_sent, sender=self)
+
+    @staticmethod
     def _print_sms_pre(sender, **args):
         print(("SMS: sending message to {raw_number!s}:\n"
                "{message!s}\n").format(**args))
 
-    @SmsDispatcher.signal_sms_filtered.connect
+    @staticmethod
     def _print_sms_filtered(sender, **args):
         print(("SMS: filtered number {raw_number!s} "
                "({number!s})").format(**args))
 
-    @SmsDispatcher.signal_sms_error.connect
+    @staticmethod
     def _print_sms_error(sender, **args):
         print(("SMS: could not send to "
                "{raw_number!s}: {error!s}").format(**args))
 
-    @SmsDispatcher.signal_sms_sent.connect
+    @staticmethod
     def _print_sms_sent(sender, **args):
         print("SMS: sent to {raw_number!s}".format(**args))

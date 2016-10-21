@@ -6,12 +6,17 @@ identifying themselves, and verifying their identity by using a nonce sent to
 their mobile phone.
 
 """
-from __future__ import unicode_literals, absolute_import
+from __future__ import unicode_literals, absolute_import, division
 
-from flask import request, g, jsonify
+import string
+import random
+
+from werkzeug.exceptions import Forbidden
+from flask import g, jsonify, current_app
 from flask import render_template
 from flask import Blueprint
 from marshmallow import fields, Schema
+from datetime import timedelta
 
 from ..auth import require_jwt, encode_token
 from ..auth.token import JWTAuthToken
@@ -20,12 +25,17 @@ from ..sms import send_sms
 from ..recaptcha import require_recaptcha
 from ..template import add_template, get_localized_template
 from . import utils
+from ..redis import store
 
 
 API = Blueprint('sms', __name__, url_prefix='/sms')
 
 NS_SMS_SENT = 'sms-sent'
 NS_CODE_VERIFIED = 'code-verified'
+
+NONCE_PREFIX = 'sms-nonce:'
+NONCE_DEFAULT_LENGTH = 6
+NONCE_DEFAULT_EXPIRE_MINUTES = 10
 
 
 add_template('sms-code',
@@ -50,22 +60,37 @@ class ResetPasswordSchema(Schema):
     new_password = fields.String(required=True, allow_none=False)
 
 
-def save_nonce(identifier, nonce):
+def get_nonce_length(app):
+    return int(app.config['NONCE_LENGTH'])
+
+
+def get_nonce_expire(app):
+    return timedelta(minutes=app.config['NONCE_EXPIRE_MINUTES'])
+
+
+def generate_nonce(length):
+    # TODO: Mixed casing or longer length?
+    alphanum = string.digits + string.ascii_letters
+    return ''.join(random.choice(alphanum, length))
+
+
+def save_nonce(identifier, nonce, duration):
     """ Store a new issued nonce value. """
-    # TODO
-    pass
+    name = '{!s}{!s}'.format(NONCE_PREFIX, identifier)
+    # NOTE: StrictRedis!
+    store.setex(name, duration, nonce)
 
 
 def check_nonce(identifier, nonce):
     """ Check if a given nonce value is valid. """
-    # TODO
-    return False
+    name = '{!s}{!s}'.format(NONCE_PREFIX, identifier)
+    return nonce and store.get(name) == nonce
 
 
 def clear_nonce(identifier):
     """ Clear a used nonce value. """
-    # TODO
-    pass
+    name = '{!s}{!s}'.format(NONCE_PREFIX, identifier)
+    store.delete(name)
 
 
 @API.route('/identify', methods=['POST'])
@@ -95,42 +120,40 @@ def authenticate(data):
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 
     if person_id is None:
-        # TODO: Proper exception
-        raise Exception("Invalid person id")
+        raise Forbidden("Invalid person id")
 
     # Check username
     if data["username"] not in client.get_usernames(person_id):
-        # TODO: Proper exception
-        raise Exception("Invalid username")
+        raise Forbidden("Invalid username")
     if not client.can_use_sms_service(data["username"]):
-        # TODO: Proper exception
-        raise Exception("User is reserved from SMS service")
+        raise Forbidden("User is reserved from SMS service")
 
     # Check mobile number
     if data["mobile"] not in client.get_mobile_numbers(person_id):
-        # TODO: Proper exception
-        raise Exception("Invalid mobile number")
+        raise Forbidden("Invalid mobile number")
 
     # Everything is OK, store and send nonce
     identifier = '{!s}:{!s}'.format(data["username"], data["mobile"])
 
-    # TODO: generate code and send SMS
-    nonce = 'foo'
-    save_nonce(identifier, nonce)
+    expire = get_nonce_expire(current_app)
+    nonce = generate_nonce(get_nonce_length(current_app))
+    save_nonce(identifier, nonce, expire)
 
     template = get_localized_template('sms-code')
-    message = render_template(template, code=nonce, minutes=10)
+    message = render_template(
+        template,
+        code=nonce,
+        minutes=expire.total_seconds()//60)
     send_sms(data["mobile"], message)
 
     # TODO: Record stats?
-
     # TODO: Re-use existing jti?
     t = JWTAuthToken.new(namespace=NS_SMS_SENT,
-                         identity="{!s}:{!s}".format(identifier))
+                         identity=identifier)
     return jsonify({'token': encode_token(t), })
 
 
-@API.route('/verify')
+@API.route('/verify', methods=['POST', ])
 @require_jwt(namespaces=[NS_SMS_SENT, ])
 @utils.input_schema(NonceSchema)
 def verify_code(data):
@@ -141,13 +164,13 @@ def verify_code(data):
 
     Response
         The response includes a JSON document with a JWT that can be used to
-        verify the nonce: ``{"token": "..."}``
+        set a new password: ``{"token": "..."}``
 
     """
     identifier = g.current_token.identity
 
     if not check_nonce(identifier, data["nonce"]):
-        raise Exception("Invalid code")
+        raise Forbidden("Invalid nonce")
 
     username, mobile = identifier.split(':')
 
@@ -159,7 +182,7 @@ def verify_code(data):
     return jsonify({'token': encode_token(t), })
 
 
-@API.route('/set')
+@API.route('/set', methods=['POST', ])
 @require_jwt(namespaces=[NS_CODE_VERIFIED, ])
 @utils.input_schema(ResetPasswordSchema)
 def change_password(data):
@@ -169,9 +192,7 @@ def change_password(data):
         The request should include a field with the ``nonce`` to verify.
 
     Response
-        The response includes a JSON document with a JWT that can be used to
-        verify the nonce: ``{"token": "..."}``
-
+        The response includes an empty JSON document.
     """
     username = g.current_token.identity
     client = get_idm_client()
@@ -186,3 +207,8 @@ def change_password(data):
     # TODO: Return value?
     # TODO: Invalidate token?
     return jsonify({})
+
+
+def init_app(app):
+    app.config.setdefault('NONCE_EXPIRE_MINUTES', NONCE_DEFAULT_EXPIRE_MINUTES)
+    app.config.setdefault('NONCE_LENGTH', NONCE_DEFAULT_LENGTH)

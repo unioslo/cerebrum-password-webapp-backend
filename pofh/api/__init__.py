@@ -45,6 +45,8 @@ def init_app(app):
     app.register_blueprint(password.API)
     app.register_blueprint(sms.API)
 
+    sms.init_app(app)
+
     # Workaround for https://github.com/pallets/flask/issues/941
     if not app.config.get('DEBUG', False):
         for code in _exc.default_exceptions:

@@ -18,6 +18,7 @@ from . import sms
 from . import recaptcha
 from . import language
 from . import template
+from . import redis
 
 __VERSION__ = '0.1.0'
 
@@ -196,6 +197,9 @@ class WsgiApp(object):
         # setup CORS support
         cors = CORS()
         cors.init_app(app)
+
+        # setup storage
+        redis.init_app(app)
 
         # setup api
         recaptcha.init_app(app)

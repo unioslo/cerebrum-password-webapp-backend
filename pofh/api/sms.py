@@ -65,20 +65,19 @@ def get_nonce_length(app):
 
 
 def get_nonce_expire(app):
-    return timedelta(minutes=app.config['NONCE_EXPIRE_MINUTES'])
+    return timedelta(minutes=int(app.config['NONCE_EXPIRE_MINUTES']))
 
 
 def generate_nonce(length):
     # TODO: Mixed casing or longer length?
     alphanum = string.digits + string.ascii_letters
-    return ''.join(random.choice(alphanum, length))
+    return ''.join(random.choice(alphanum) for n in range(length))
 
 
 def save_nonce(identifier, nonce, duration):
     """ Store a new issued nonce value. """
     name = '{!s}{!s}'.format(NONCE_PREFIX, identifier)
-    # NOTE: StrictRedis!
-    store.setex(name, duration, nonce)
+    store.setex(name, duration, nonce)  # NOTE: StrictRedis argument order
 
 
 def check_nonce(identifier, nonce):
@@ -129,6 +128,9 @@ def authenticate(data):
         raise Forbidden("User is reserved from SMS service")
 
     # Check mobile number
+    # TODO: Use phonenumbers/dispatcher.parse to compare numbers?
+    #       That way, end users don't have to guess the internal formatting in
+    #       the IdM
     if data["mobile"] not in client.get_mobile_numbers(person_id):
         raise Forbidden("Invalid mobile number")
 
@@ -144,7 +146,8 @@ def authenticate(data):
         template,
         code=nonce,
         minutes=expire.total_seconds()//60)
-    send_sms(data["mobile"], message)
+    if not send_sms(data["mobile"], message):
+        return ("Unable to send SMS", 500)
 
     # TODO: Record stats?
     # TODO: Re-use existing jti?

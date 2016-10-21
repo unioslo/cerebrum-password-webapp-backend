@@ -91,6 +91,11 @@ class UioGatewayDispatcher(dispatcher.SmsDispatcher):
         self._pass = password
         self._timeout = timeout
 
+        self.signal_sms_pre.connect(self._log_sms_pre, sender=self)
+        self.signal_sms_filtered.connect(self._log_sms_filtered, sender=self)
+        self.signal_sms_error.connect(self._log_sms_error, sender=self)
+        self.signal_sms_sent.connect(self._log_sms_sent, sender=self)
+
     def _send(self, number, message):
         """ Send an SMS message.
 
@@ -114,24 +119,24 @@ class UioGatewayDispatcher(dispatcher.SmsDispatcher):
         response.raise_for_status()
         validate_response(response)
 
-    @dispatcher.SmsDispatcher.signal_sms_pre.connect
-    def _print_sms_pre(sender, **args):
+    @staticmethod
+    def _log_sms_pre(sender, **args):
         current_app.logger.debug(
             "SMS: Sending message to '{raw_number!s}'".format(**args))
 
-    @dispatcher.SmsDispatcher.signal_sms_filtered.connect
-    def _print_sms_filtered(sender, **args):
+    @staticmethod
+    def _log_sms_filtered(sender, **args):
         current_app.logger.info(
-            "SMS: Invalid or non-whitelisted number '{raw_number!s}'".format(
-                **args))
+            ("SMS: Invalid or non-whitelisted number "
+             "'{raw_number!s}'").format(**args))
 
-    @dispatcher.SmsDispatcher.signal_sms_sent.connect
-    def _print_sms_error(sender, **args):
+    @staticmethod
+    def _log_sms_error(sender, **args):
         current_app.logger.error(
-            "SMS: Sending to '{raw_number!s}' failed: {error!s}".format(
-                **args))
+            ("SMS: Sending to '{raw_number!s}' "
+             "failed: {error!s}").format(**args))
 
-    @dispatcher.SmsDispatcher.signal_sms_sent.connect
-    def _print_sms_sent(sender, **args):
+    @staticmethod
+    def _log_sms_sent(sender, **args):
         current_app.logger.debug(
             "SMS: Sent message to '{raw_number!s}'".format(**args))

@@ -1,0 +1,30 @@
+{
+    "persons": {
+        "1": {
+            "users": ["foo", "bar"],
+            "mobile": ["+4720000000", "+4720000001"]
+        },
+        "2": {
+            "users": ["baz", "bat"],
+            "mobile": ["+4720000002", "+4720000003"]
+        }
+    },
+    "users": {
+        "foo": {
+            "password": "hunter2",
+            "can_use_sms": true
+        },
+        "bar": {
+            "password": "password1",
+            "can_use_sms": false
+        },
+        "baz": {
+            "password": "fido5",
+            "can_use_sms": true
+        },
+        "bat": {
+            "password": "secret",
+            "can_use_sms": false
+        }
+    }
+}

@@ -6,7 +6,7 @@ Settings
 --------
 The following settings are used from the Flask configuration:
 
-``USE_RECAPTCHA`` (:py:class:`bool`)
+``RECAPTCHA_ENABLE`` (:py:class:`bool`)
     Set to True to enable Google ReCAPTCHA.
 
 ``RECAPTCHA_SITE_KEY`` (:py:class:`str`)
@@ -31,7 +31,7 @@ from warnings import warn
 
 
 DEFAULTS = {
-    'USE_RECAPTCHA': False,
+    'RECAPTCHA_ENABLE': False,
     'RECAPTCHA_SITE_KEY': '',
     'RECAPTCHA_SECRET_KEY': '',
     'RECAPTCHA_VERIFY_URL': 'https://www.google.com/recaptcha/api/siteverify',
@@ -173,7 +173,7 @@ def init_app(app):
     for k, v in DEFAULTS.items():
         app.config.setdefault(k, v)
 
-    if app.config['USE_RECAPTCHA']:
+    if app.config['RECAPTCHA_ENABLE']:
         _recaptcha = from_config(app.config)
         _recaptcha.enabled = True
         if app.debug:

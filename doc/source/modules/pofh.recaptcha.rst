@@ -89,7 +89,7 @@ Example
 ::
 
     app = Flask('foo')
-    app.config['USE_RECAPTCHA'] = True
+    app.config['RECAPTCHA_ENABLE'] = True
     app.config['RECAPTCHA_SITE_KEY'] = 'foo'
     app.config['RECAPTCHA_SECRET_KEY'] = 'bar'
     init_app(app)

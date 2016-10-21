@@ -149,6 +149,8 @@ def init_logging(app):
             print("Logging: Using default log settings")
             logging.config.dictConfig(DEFAULT_LOG_CONFIG)
     else:
+        if not os.path.isabs(log_config):
+            log_config = os.path.join(app.instance_path, log_config)
         # Log file given in config
         if os.path.isfile(log_config):
             print("Logging: Loading config from LOG_CONFIG='{!s}'".format(

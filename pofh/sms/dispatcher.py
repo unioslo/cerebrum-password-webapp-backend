@@ -9,10 +9,10 @@ import phonenumbers
 class SmsDispatcher(object):
     """ Abstract SMS Dispatcher. """
 
-    signal_sms_pre = blinker.Signal('sms.pre')
-    signal_sms_filtered = blinker.Signal('sms.filtered')
-    signal_sms_error = blinker.Signal('sms.error')
-    signal_sms_sent = blinker.Signal('sms.sent')
+    signal_sms_pre = blinker.signal('sms.pre')
+    signal_sms_filtered = blinker.signal('sms.filtered')
+    signal_sms_error = blinker.signal('sms.error')
+    signal_sms_sent = blinker.signal('sms.sent')
 
     def __init__(self):
         self._country_code_whitelist = list()

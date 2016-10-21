@@ -21,7 +21,7 @@ The following settings are used from the Flask configuration:
 """
 from __future__ import unicode_literals
 
-from werkzeug.exceptions import Forbidden
+from werkzeug.exceptions import BadRequest
 from flask import request, current_app
 from flask import Blueprint, url_for, render_template
 from functools import wraps
@@ -137,7 +137,7 @@ def require_recaptcha(field="g-recaptcha-response"):
                 else:
                     current_app.logger.info(
                         "recaptcha: invalid ({!s})".format(data.get(field)))
-                    raise Forbidden("invalid recaptcha response")
+                    raise BadRequest("invalid recaptcha response")
             else:
                 current_app.logger.debug("recaptcha: disabled")
             return func(*args, **kwargs)

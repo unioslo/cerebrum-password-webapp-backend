@@ -1,9 +1,40 @@
 # encoding: utf-8
-""" Authenticate and change password.
+""" SMS nonce API.
 
-This module presents an API that lets users change their passord by
-identifying themselves, and verifying their identity by using a nonce sent to
-their mobile phone.
+This module presents an API that lets users identify themselves, and verify
+their identity by using a one time code (nonce) sent to their mobile phone.
+
+Settings
+--------
+``NONCE_EXPIRE_MINUTES`` (:py:class:`int`)
+    How long the one time code is valid, in minutes. Defaults to
+    `NONCE_DEFAULT_EXPIRE_MINUTES`.
+
+``NONCE_LENGTH`` (:py:class:`int`)
+    Number of characters in the one time code. Defaults to
+    `NONCE_DEFAULT_LENGTH`.
+
+
+SMS templates
+-------------
+The SMS will contain text from an internal default template, ``sms-code``. To
+customize this template, place a template named ``sms-code`` and/or one or more
+localized templates named ``sms-code.<language-tag>`` in the application
+templates folder.
+
+The templates folder defaults to a directory named ``templates`` in the
+application instance path.
+
+Templates will receive two context variables:
+
+``minutes``
+    How many minutes the template is valid for.
+
+``code``
+    The one time code that matches the issued JWT.
+
+In debug mode, an additional route for testing the templates is added to the
+API.
 
 """
 from __future__ import unicode_literals, absolute_import, division
@@ -11,8 +42,7 @@ from __future__ import unicode_literals, absolute_import, division
 import string
 import random
 
-from werkzeug.exceptions import Forbidden
-from flask import g, jsonify, current_app
+from flask import g, jsonify, current_app, url_for
 from flask import render_template
 from flask import Blueprint
 from marshmallow import fields, Schema
@@ -26,18 +56,39 @@ from ..recaptcha import require_recaptcha
 from ..template import add_template, get_localized_template
 from . import utils
 from ..redis import store
+from .password import create_password_token
 
 
 API = Blueprint('sms', __name__, url_prefix='/sms')
 
-NS_SMS_SENT = 'sms-sent'
-NS_CODE_VERIFIED = 'code-verified'
+NS_VERIFY_NONCE = 'allow-verify-nonce'
 
 NONCE_PREFIX = 'sms-nonce:'
 NONCE_DEFAULT_LENGTH = 6
 NONCE_DEFAULT_EXPIRE_MINUTES = 10
 
 
+class InvalidNumber(utils.ApiError):
+    code = 400
+    error_type = 'invalid-number'
+
+
+class IdentityError(utils.ApiError):
+    code = 400
+    error_type = 'not-found-error'
+
+
+class ServiceUnavailable(utils.ApiError):
+    code = 403
+    error_type = 'reserved'
+
+
+class InvalidNonce(utils.ApiError):
+    code = 401
+    error_type = 'invalid-nonce'
+
+
+# default sms template
 add_template('sms-code',
              "Code: {{ code }}\nValid for {{ minutes }} minutes\n")
 
@@ -55,20 +106,18 @@ class NonceSchema(Schema):
     nonce = fields.String(required=True, allow_none=False)
 
 
-class ResetPasswordSchema(Schema):
-    """ Set new password schema. """
-    new_password = fields.String(required=True, allow_none=False)
-
-
 def get_nonce_length(app):
+    """ Get nonce length for current app. """
     return int(app.config['NONCE_LENGTH'])
 
 
 def get_nonce_expire(app):
+    """ Get nonce expire time for current app. """
     return timedelta(minutes=int(app.config['NONCE_EXPIRE_MINUTES']))
 
 
 def generate_nonce(length):
+    """ Generate a nonce of a given length. """
     # TODO: Mixed casing or longer length?
     alphanum = string.digits + string.ascii_letters
     return ''.join(random.choice(alphanum) for n in range(length))
@@ -92,10 +141,10 @@ def clear_nonce(identifier):
     store.delete(name)
 
 
-@API.route('/identify', methods=['POST'])
+@API.route('', methods=['POST'])
 @require_recaptcha()
 @utils.input_schema(SmsIdentitySchema)
-def authenticate(data):
+def identify(data):
     """ Check submitted person info and send sms nonce.
 
     Request
@@ -114,25 +163,36 @@ def authenticate(data):
         The response includes a JSON document with a JWT that can be used to
         verify the sent nonce: ``{"token": "..."}``
 
+    Errors
+        400: schema error
+        400: not found
+        400: invalid number
+        401: invalid recapthca
+        403: reserved
+
     """
+    # TODO: Record stats / start time?
+
     client = get_idm_client()
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 
     if person_id is None:
-        raise Forbidden("Invalid person id")
+        raise IdentityError()
 
     # Check username
     if data["username"] not in client.get_usernames(person_id):
-        raise Forbidden("Invalid username")
+        raise IdentityError()
     if not client.can_use_sms_service(data["username"]):
-        raise Forbidden("User is reserved from SMS service")
+        # record stats?
+        raise ServiceUnavailable()
 
     # Check mobile number
     # TODO: Use phonenumbers/dispatcher.parse to compare numbers?
     #       That way, end users don't have to guess the internal formatting in
     #       the IdM
     if data["mobile"] not in client.get_mobile_numbers(person_id):
-        raise Forbidden("Invalid mobile number")
+        # record stats?
+        raise InvalidNumber()
 
     # Everything is OK, store and send nonce
     identifier = '{!s}:{!s}'.format(data["username"], data["mobile"])
@@ -149,15 +209,17 @@ def authenticate(data):
     if not send_sms(data["mobile"], message):
         return ("Unable to send SMS", 500)
 
-    # TODO: Record stats?
     # TODO: Re-use existing jti?
-    t = JWTAuthToken.new(namespace=NS_SMS_SENT,
-                         identity=identifier)
-    return jsonify({'token': encode_token(t), })
+    token = JWTAuthToken.new(namespace=NS_VERIFY_NONCE,
+                             identity=identifier)
+    return jsonify({
+        'token': encode_token(token),
+        'href': url_for('.verify_code'),
+    })
 
 
 @API.route('/verify', methods=['POST', ])
-@require_jwt(namespaces=[NS_SMS_SENT, ])
+@require_jwt(namespaces=[NS_VERIFY_NONCE, ])
 @utils.input_schema(NonceSchema)
 def verify_code(data):
     """ Check submitted sms nonce.
@@ -169,49 +231,46 @@ def verify_code(data):
         The response includes a JSON document with a JWT that can be used to
         set a new password: ``{"token": "..."}``
 
+    Errors
+        400: schema error
+        401: invalid nonce
+        401: missing jwt
+        403: invalid jwt
+
     """
     identifier = g.current_token.identity
 
     if not check_nonce(identifier, data["nonce"]):
-        raise Forbidden("Invalid nonce")
+        # record stats?
+        raise InvalidNonce()
 
     username, mobile = identifier.split(':')
 
-    # TODO: Record stats?
-    # TODO: Re-use existing jti?
     # TODO: Invalidate previous token?
-    t = JWTAuthToken.new(namespace=NS_CODE_VERIFIED,
-                         identity=username)
-    return jsonify({'token': encode_token(t), })
+
+    token = create_password_token(username)
+
+    return jsonify({
+        'token': encode_token(token),
+        'href': url_for('password.change_password')
+    })
 
 
-@API.route('/set', methods=['POST', ])
-@require_jwt(namespaces=[NS_CODE_VERIFIED, ])
-@utils.input_schema(ResetPasswordSchema)
-def change_password(data):
-    """ Check submitted sms nonce.
-
-    Request
-        The request should include a field with the ``nonce`` to verify.
-
-    Response
-        The response includes an empty JSON document.
-    """
-    username = g.current_token.identity
-    client = get_idm_client()
-
-    if not client.check_new_password(username, data["new_password"]):
-        # TODO: Proper error
-        raise Exception("Not good enough")
-
-    client.set_new_password(username, data["new_password"])
-
-    # TODO: Record stats?
-    # TODO: Return value?
-    # TODO: Invalidate token?
-    return jsonify({})
+def test_template():
+    """ Render a test template. """
+    template = get_localized_template('sms-code')
+    expire = get_nonce_expire(current_app)
+    length = get_nonce_length(current_app)
+    return render_template(
+        template,
+        code=generate_nonce(length),
+        minutes=expire.total_seconds()//60)
 
 
-def init_app(app):
+def init_api(app):
+    """ Read config and register SMS API blueprint. """
     app.config.setdefault('NONCE_EXPIRE_MINUTES', NONCE_DEFAULT_EXPIRE_MINUTES)
     app.config.setdefault('NONCE_LENGTH', NONCE_DEFAULT_LENGTH)
+    if app.debug:
+        API.route('/test-template')(test_template)
+    app.register_blueprint(API)

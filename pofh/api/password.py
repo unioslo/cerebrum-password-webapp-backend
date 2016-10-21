@@ -1,98 +1,80 @@
 # encoding: utf-8
-""" Authenticate and change password.
+""" Change password.
 
-This module presents an API that lets users change their passord by
-authenticating with their existing username and password.
+This module presents an API that lets users change their passord if they have a
+JWT that allows them to do so.
 
 """
 from __future__ import unicode_literals, absolute_import
 
-from werkzeug.exceptions import Forbidden
-from flask import g, jsonify
-from flask import Blueprint
+from flask import g, Blueprint
 from marshmallow import fields, Schema
 
-from ..auth import require_jwt, encode_token
+from ..auth import require_jwt
 from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client
-from ..recaptcha import require_recaptcha
 from . import utils
 
 
-API = Blueprint('password', __name__, url_prefix='/password')
+API = Blueprint('password', __name__)
 
-NS_BASIC_AUTH = 'basic-auth'
-
-
-class ChangePasswordSchema(Schema):
-    """ Change password form. """
-    old_password = fields.String(required=True, allow_none=False)
-    new_password = fields.String(required=True, allow_none=False)
+NS_SET_PASSWORD = 'allow-set-password'
 
 
-class BasicAuthSchema(Schema):
-    """ Basic auth form. """
-    username = fields.String(required=True, allow_none=False)
+class ResetPasswordSchema(Schema):
+    """ Set new password schema. """
     password = fields.String(required=True, allow_none=False)
 
 
-# TODO: Implement Basic Auth here?
-
-@API.route('/authenticate', methods=['POST'])
-@require_recaptcha()
-@utils.input_schema(BasicAuthSchema)
-def authenticate(data):
-    """ Authenticate using username and password.
-
-    Request
-        Request body should include two attributes, ``username`` and
-        ``password``.
-
-    Response
-        The response includes a JSON document with a JWT that can be used to
-        set a new password: ``{"token": "..."}``
-
-    """
-    client = get_idm_client()
-
-    if not client.verify_current_password(data["username"], data["password"]):
-        raise Forbidden("Invalid username or password")
-
-    t = JWTAuthToken.new(namespace=NS_BASIC_AUTH,
-                         identity=data["username"])
-    # TODO: Record stats?
-    return jsonify({'token': encode_token(t), })
+class InvalidNewPassword(utils.ApiError):
+    code = 400
+    error_type = 'weak-password'
 
 
-@API.route('/set', methods=['POST'])
-@require_jwt(namespaces=[NS_BASIC_AUTH, ])
-@utils.input_schema(ChangePasswordSchema)
+def create_password_token(username):
+    return JWTAuthToken.new(namespace=NS_SET_PASSWORD, identity=username)
+
+
+@API.route('/password', methods=['POST'])
+@require_jwt(namespaces=[NS_SET_PASSWORD, ])
+@utils.input_schema(ResetPasswordSchema)
 def change_password(data):
     """ Set a new password.
 
     Request
         Request headers should include a valid JWT.
-        Request body should include two attributes, ``old_password`` and
-        ``new_password``.
+        Request body should include one attribute, ``password``.
 
     Response
-        TODO
+        Returns an empty 204 response if password gets changed.
+
+    Errors
+        400: schema-error
+        400: weak-password
+        401: missing or invalid jwt
+        403: invalid jwt namespace
 
     """
     username = g.current_token.identity
     client = get_idm_client()
 
     # Check if new password is good enough
-    if not client.check_new_password(username, data["new_password"]):
-        # TODO: Proper error? Return value?
-        raise Exception("Not good enough")
+    if not client.check_new_password(username, data["password"]):
+        # TODO: Include errors (broken rules) from idm?
+        raise InvalidNewPassword()
 
-    # Re-check current password
-    if not client.verify_current_password(username, data["old_password"]):
-        # TODO: Proper exception
-        raise Exception("Invalid password")
+    client.set_new_password(username, data["password"])
 
-    client.set_new_password(username, data["new_password"])
-    # TODO: Record stats?
-    # TODO: Return value?
-    return jsonify({})
+    # TODO: Invalidate token?
+    #  - we should keep a blacklist with used tokens in our redis store
+
+    # TODO: Record stats:
+    #  - score?
+    #  - time from start?
+
+    return ('', 204)
+
+
+def init_api(app):
+    """ Register API blueprint. """
+    app.register_blueprint(API)

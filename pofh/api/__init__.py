@@ -8,6 +8,7 @@ from blinker import signal
 from .. import auth
 
 from . import usernames
+from . import authenticate
 from . import password
 from . import sms
 from . import utils
@@ -42,16 +43,20 @@ def handle_error(error):
 
 def init_app(app):
     """ Bootstrap the API. """
-    app.register_blueprint(usernames.API)
-    app.register_blueprint(password.API)
-    app.register_blueprint(sms.API)
+    # functionality
+    usernames.init_api(app)
+    password.init_api(app)
 
-    sms.init_app(app)
+    # auth methods
+    authenticate.init_api(app)
+    sms.init_api(app)
 
     # Workaround for https://github.com/pallets/flask/issues/941
     if not app.config.get('DEBUG', False):
         for code in _exc.default_exceptions:
             app.errorhandler(code)(handle_error)
+
+    # Handle custom API errors
     app.errorhandler(utils.ApiError)(utils.handle_api_error)
 
     @app.route('/renew', methods=['POST', ])

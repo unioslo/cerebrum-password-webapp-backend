@@ -71,7 +71,7 @@ def get_nonce_expire(app):
 def generate_nonce(length):
     # TODO: Mixed casing or longer length?
     alphanum = string.digits + string.ascii_letters
-    return ''.join(random.sample(alphanum, length))
+    return ''.join(random.choice(alphanum, length))
 
 
 def save_nonce(identifier, nonce, duration):

@@ -186,13 +186,11 @@ class WsgiApp(object):
         :rtype: Flask
         :return: The assembled and configured Flask application.
         """
-        # set up flask app args
-        kwargs = {
-            'instance_relative_config': True,
-        }
-
         # setup flask app
-        app = flask_class(__name__, **kwargs)
+        app = flask_class(
+            __name__,
+            static_folder=None,
+            instance_relative_config=True)
 
         init_config(app, config)
         init_logging(app)

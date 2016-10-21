@@ -87,44 +87,72 @@ class IdmClient(object):
 
 
 class MockClient(IdmClient):
-    """ An IdM mock client implementation. """
+    """ An IdM mock client implementation.
+
+    Set ``data`` to a :py:class:`dict` to use custom mock data:
+
+    ::
+
+        {
+            "persons": {
+                "<id>": {
+                    "users": ["<username>", ...],
+                    "mobile": ["<number>", ...],
+                },
+                ...
+            },
+            "users": {
+                "<username>": {
+                    "password": "<password>",
+                    "can_use_sms": (True | False),
+                },
+                ...
+            }
+        }
+
+    """
 
     # dummy data map
     _default_db = {
         "persons": {
             "1": {
-                "users": ["foo", "bar"],
-                "mobile": ["12345678", "87654321", ],
-            },
-            "2": {
-                "users": ["baz", "bat"],
-                "mobile": ["12345678", "87654321", ],
+                "users": ["foo", ],
+                "mobile": ["+4720000000", "+4720000001", ],
             }
         },
         "users": {
             "foo": {
                 "password": "hunter2",
                 "can_use_sms": True,
-            },
-            "bar": {
-                "password": "password1",
-                "can_use_sms": False,
-            },
-            "baz": {
-                "password": "fido5",
-                "can_use_sms": True,
-            },
-            "bat": {
-                "password": "secret",
-                "can_use_sms": False,
-            },
+            }
         }
     }
 
-    def __init__(self, db=None):
-        self._db = db or self._default_db
+    def __init__(self, data=None):
+        self._db = {}
+        if data is None:
+            self.load_data(self._default_db)
+        else:
+            self.load_data(data)
 
     _valid_passwords = ["hunter2", "password1", "fido5", "secret"]
+
+    def load_data(self, data):
+        for name, info in data.get("users", {}).items():
+            self._db.setdefault("users", {})[name] = dict()
+            self._db["users"][name]["password"] = info.get("password", "")
+            self._db["users"][name]["can_use_sms"] = info.get("can_use_sms",
+                                                              False)
+
+        for pid, info in data.get("persons", {}).items():
+            self._db.setdefault("persons", {})[pid] = dict()
+            for name in info.get("users", []):
+                if name in self._db["users"]:
+                    self._db["persons"][pid].setdefault("users",
+                                                        []).append(name)
+            for number in info.get("mobile", []):
+                self._db["persons"][pid].setdefault("mobile",
+                                                    []).append(number)
 
     def get_person(self, idtype, idvalue):
         if idvalue in self._db["persons"]:

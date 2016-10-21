@@ -15,6 +15,7 @@ import logging.config
 from . import api
 from . import auth
 from . import sms
+from . import idm
 from . import recaptcha
 from . import language
 from . import template
@@ -205,6 +206,7 @@ class WsgiApp(object):
         recaptcha.init_app(app)
         auth.init_app(app)
         sms.init_app(app)
+        idm.init_app(app)
         language.init_app(app)
         template.init_app(app)
         api.init_app(app)

@@ -70,7 +70,8 @@ def init_debug(app):
     @TEST_API.route('/<string:key>', methods=['GET', ])
     def _debug_store_get(key):
         real_key = '{!s}{!s}'.format(TEST_KEY_PREFIX, key)
-        current_app.logger.debug("Store-debug: Getting '{!s}'".format(real_key))
+        current_app.logger.debug(
+            "Store-debug: Getting '{!s}'".format(real_key))
         return jsonify({key: store.get(real_key)})
 
     @TEST_API.route('/', methods=['GET', ])
@@ -99,7 +100,7 @@ def init_app(app):
         class MockRedis(_MockRedis):
             @classmethod
             def from_url(cls, *args, **kwargs):
-                return cls()
+                return cls(strict=True)
 
         factory.set_provider(MockRedis)
 

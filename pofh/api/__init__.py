@@ -10,12 +10,13 @@ from .. import auth
 from . import usernames
 from . import password
 from . import sms
+from . import utils
 
 
 api_error = signal('api.error')
 
 
-def handle_api_error(error):
+def handle_error(error):
     """ Handle errors.
 
     This handler attempts to jsonify uncaught exceptions.
@@ -50,7 +51,8 @@ def init_app(app):
     # Workaround for https://github.com/pallets/flask/issues/941
     if not app.config.get('DEBUG', False):
         for code in _exc.default_exceptions:
-            app.errorhandler(code)(handle_api_error)
+            app.errorhandler(code)(handle_error)
+    app.errorhandler(utils.ApiError)(utils.handle_api_error)
 
     @app.route('/renew', methods=['POST', ])
     @auth.require_jwt()

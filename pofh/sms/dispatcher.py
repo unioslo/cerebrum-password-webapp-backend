@@ -69,7 +69,7 @@ class SmsDispatcher(object):
 
         :param raw_number: A phone number to whitelist.
         """
-        self._number_whitelist.append(self._transform(raw_number))
+        self._number_whitelist.append(self.parse(raw_number))
 
     def check_number(self, number):
         """ Check if a given number is valid. """

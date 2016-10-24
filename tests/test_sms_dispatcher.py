@@ -33,27 +33,27 @@ def abstract():
 
 
 def test_filter_valid_number(abstract, valid_number):
-    assert abstract._filter(valid_number) is False
+    assert abstract.filter(valid_number) is False
 
 
 def test_filter_invalid_number(abstract, invalid_number):
-    assert abstract._filter(invalid_number) is True
+    assert abstract.filter(invalid_number) is True
 
 
 def test_whitelist_region(abstract, valid_number):
     abstract.whitelist_regions = True
-    assert abstract._filter(valid_number) is True
+    assert abstract.filter(valid_number) is True
     abstract.add_region("SE")
-    assert abstract._filter(valid_number) is True
+    assert abstract.filter(valid_number) is True
     abstract.add_region("NO")
-    assert abstract._filter(valid_number) is False
+    assert abstract.filter(valid_number) is False
 
 
 def test_whitelist_number(abstract, valid_number):
     abstract.whitelist_numbers = True
-    assert abstract._filter(valid_number) is True
+    assert abstract.filter(valid_number) is True
     abstract.add_number(fmt(valid_number))
-    assert abstract._filter(valid_number) is False
+    assert abstract.filter(valid_number) is False
 
 
 @pytest.fixture

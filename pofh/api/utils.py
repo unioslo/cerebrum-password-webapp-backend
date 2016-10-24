@@ -2,19 +2,48 @@
 """ Simple api utils. """
 from __future__ import unicode_literals, absolute_import
 
-# from werkzeug.exceptions import BadRequest
-
-from flask import request
-from flask import abort
+from flask import request, jsonify
 from functools import wraps
 
 
+class ApiError(Exception):
+    """ Api Error. """
+
+    code = 400
+    error_type = "generic-api-error"
+
+    def __init__(self, details=None):
+        super(ApiError, self).__init__(self.error_type)
+        self.details = details or None
+
+    def __repr__(self):
+        return "{!s}(details={!r})".format(
+            self.__class__.__name__,
+            self.details)
+
+
+def handle_api_error(error):
+    """ Error handler for errors of type ApiError. """
+    response = jsonify(
+        error=error.error_type,
+        details=error.details or {},
+    )
+    response.status_code = error.code
+    return response
+
+
 def get_request_data(req):
-    """ Get request form data. """
+    """ Get request data. """
     if req.is_json:
         return req.get_json()
     else:
         return req.form
+
+
+class SchemaError(ApiError):
+    """ Schema validation error."""
+    code = 400
+    error_type = "schema-error"
 
 
 def validate_schema(schema_type):
@@ -26,8 +55,7 @@ def validate_schema(schema_type):
         def wrapper(*args, **kwargs):
             errors = schema.validate(get_request_data(request))
             if (errors):
-                # TODO: Render better error message
-                abort(400, {'msg': 'Invalid request data', 'errors': errors})
+                raise SchemaError(errors)
             return func(*args, **kwargs)
         # TODO: Auto-document schema.
         wrapper.__doc__ += (
@@ -38,6 +66,16 @@ def validate_schema(schema_type):
 
 
 def input_schema(schema_type):
+    """ automatically validate and deserialize schema.
+
+    The deserialized schema will be given as the first argument to the wrapped
+    handler.
+
+    Example:
+        @input_schema(SomeSchemaClass)
+        def foo(data):
+            return jsonify(data)
+    """
     schema = schema_type()
 
     def wrap(func):
@@ -45,9 +83,7 @@ def input_schema(schema_type):
         def wrapper(*args, **kwargs):
             result = schema.load(get_request_data(request))
             if (result.errors):
-                # TODO: Render better error message
-                abort(400, {'msg': 'Invalid request data',
-                            'errors': result.errors})
+                raise SchemaError(result.errors)
             return func(result.data, *args, **kwargs)
         # TODO: Auto-document schema.
         wrapper.__doc__ += (

@@ -85,15 +85,16 @@ def find_localized_template(name, languages, env=None):
 
     # find template
     for name in candidates:
-        # in inventory
-        if isinstance(TEMPLATES.get(name), Template):
-            return TEMPLATES[name]
         # in template env
         if env is not None:
             try:
                 return env.get_template(name)
             except TemplateNotFound:
-                continue
+                pass
+
+        # in inventory
+        if isinstance(TEMPLATES.get(name), Template):
+            return TEMPLATES[name]
 
     raise TemplateNotFound(
         name,

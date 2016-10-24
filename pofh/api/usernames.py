@@ -7,19 +7,16 @@ identifying themselves.
 """
 from __future__ import unicode_literals, absolute_import
 
-from flask import request, g, jsonify
+from flask import jsonify
 from flask import Blueprint
 from marshmallow import fields, Schema
 
-from .. import auth
-from .. import idm
+from ..idm import get_idm_client
 from ..recaptcha import require_recaptcha
 from . import utils
 
 
-API = Blueprint('usernames', __name__, url_prefix='/usernames')
-
-NS_IDENTITY_FOUND = 'identity-found'
+API = Blueprint('usernames', __name__)
 
 
 class IdentitySchema(Schema):
@@ -28,10 +25,15 @@ class IdentitySchema(Schema):
     identifier = fields.String(required=True, allow_none=False)
 
 
-@API.route('/identify', methods=['POST'])
+class IdentityError(utils.ApiError):
+    code = 400
+    error_type = 'person-not-found'
+
+
+@API.route('/list-usernames', methods=['POST'])
 @require_recaptcha()
 @utils.input_schema(IdentitySchema)
-def authenticate(data):
+def list_for_person(data):
     """ Authenticate using person info.
 
     Request
@@ -39,39 +41,27 @@ def authenticate(data):
         ``identifier``.
 
     Response
-        The response includes a JSON document with a JWT that can be used to
-        list usernames owned by that person: ``{"token": "..."}``
+        The response contains a JSON document with a list of usernames:
+        ``{"usernames": [...]}``
+
+    Errors
+        - 400: schema error
+        - 401: invalid recaptcha
 
     """
-    client = idm.get_idm_client()
+    client = get_idm_client()
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 
     if person_id is None:
-        # TODO: Proper exception
-        raise Exception("Invalid person id")
+        raise IdentityError()
 
-    t = auth.token.JWTAuthToken.new(namespace=NS_IDENTITY_FOUND,
-                                    identity=str(person_id))
-
-    # TODO: Record stats?
-    return jsonify({'token': auth.encode_token(t), })
-
-
-@API.route('/list', methods=['GET', ])
-@auth.require_jwt(namespaces=[NS_IDENTITY_FOUND, ])
-def list_usernames():
-    """ List usernames owned by a person.
-
-    Request
-        Request headers should include a JWT that identifies the person.
-
-    Response
-        The response includes a JSON document with a list of usernames:
-        ``{"usernames": [...]}``
-
-    """
-    person_id = g.current_token.identity
-    client = idm.get_idm_client()
     usernames = client.get_usernames(person_id)
+
     # TODO: Record stats?
+
     return jsonify({'usernames': usernames, })
+
+
+def init_api(app):
+    """ Register blueprint. """
+    app.register_blueprint(API)

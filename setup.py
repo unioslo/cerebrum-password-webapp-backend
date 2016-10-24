@@ -52,6 +52,12 @@ def get_packages():
     return find_packages('.', include=('pofh', 'pofh.*'))
 
 
+def build_package_data(packages, *include):
+    """ Generate a list of package_data to include. """
+    for package in packages:
+        yield package, list(include)
+
+
 class Tox(TestCommand, object):
     """ Run tests using Tox.
 
@@ -119,6 +125,8 @@ def setup_package():
         # pofh-dependencies for generating autodoc:
         setup_requires.extend(get_requirements('requirements.txt'))
 
+    packages = get_packages()
+
     setup(
         name=PACKAGE_NAME,
         description=PACKAGE_DESC,
@@ -126,7 +134,9 @@ def setup_package():
         url=PACKAGE_URL,
 
         version=get_version_number(),
-        packages=get_packages(),
+        packages=packages,
+        package_data=dict(
+            build_package_data(packages, '*.tpl')),
 
         setup_requires=setup_requires,
         install_requires=list(

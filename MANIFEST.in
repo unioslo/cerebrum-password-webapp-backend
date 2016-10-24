@@ -3,4 +3,4 @@ include README.rst
 include LICENSE.txt
 exclude Dockerfile*
 exclude docker-compose.yml
-include *.tpl
+recursive-include pofh *.tpl

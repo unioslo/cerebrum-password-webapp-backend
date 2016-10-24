@@ -21,10 +21,11 @@ def config():
 
 
 @pytest.fixture
-def app():
+def app(config):
     """ Flask application. """
     from flask import Flask
     app_ = Flask('unit-tests')
+    app_.config.from_object(config)
     return app_
 
 

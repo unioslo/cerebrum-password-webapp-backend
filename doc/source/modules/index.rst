@@ -18,8 +18,9 @@ Subpackages
    :maxdepth: 2
 
    pofh.auth
-   pofh.sms
-   pofh.recaptcha
+   pofh.extension
    pofh.idm
    pofh.language
+   pofh.recaptcha
+   pofh.sms
    pofh.template

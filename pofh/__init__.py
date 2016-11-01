@@ -20,6 +20,7 @@ from . import recaptcha
 from . import language
 from . import template
 from . import redis
+from . import stats
 
 __VERSION__ = '0.1.0'
 
@@ -203,6 +204,7 @@ class WsgiApp(object):
         redis.init_app(app)
 
         # setup api
+        stats.init_app(app)
         recaptcha.init_app(app)
         auth.init_app(app)
         sms.init_app(app)

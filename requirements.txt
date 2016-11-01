@@ -14,3 +14,4 @@ jinja2
 redis
 flask-redis
 mockredispy
+statsd >= 3.0

@@ -4,8 +4,8 @@
 from __future__ import print_function
 
 import re
-import sys
 import os
+import sys
 from setuptools import setup
 from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
@@ -52,6 +52,12 @@ def get_packages():
     return find_packages('.', include=('pofh', 'pofh.*'))
 
 
+def build_package_data(packages, *include):
+    """ Generate a list of package_data to include. """
+    for package in packages:
+        yield package, list(include)
+
+
 class Tox(TestCommand, object):
     """ Run tests using Tox.
 
@@ -82,8 +88,44 @@ class Tox(TestCommand, object):
         tox.cmdline(args=args)
 
 
+class PyTest(TestCommand, object):
+    """ Run tests using pytest.
+
+    From `http://doc.pytest.org/en/latest/goodpractices.html`.
+
+    """
+
+    user_options = [('pytest-args=', 'a', "Arguments to pass to pytest")]
+
+    def initialize_options(self):
+        super(PyTest, self).initialize_options()
+        self.pytest_args = []
+
+    def run_tests(self):
+        import shlex
+        import pytest
+        args = self.pytest_args
+        if args:
+            args = shlex.split(args)
+        errno = pytest.main(args)
+        raise SystemExit(errno)
+
+
 def setup_package():
     """ build and run setup. """
+
+    setup_requires = []
+
+    # TODO: Is this good enough? Will it catch aliases?
+    #       Are there better methods to figure out which command we are about
+    #       to run?
+    if {'build_sphinx', 'upload_docs'}.intersection(sys.argv):
+        # Sphinx modules:
+        setup_requires.extend(['sphinx', 'sphinxcontrib-httpdomain'])
+        # pofh-dependencies for generating autodoc:
+        setup_requires.extend(get_requirements('requirements.txt'))
+
+    packages = get_packages()
 
     setup(
         name=PACKAGE_NAME,
@@ -91,10 +133,12 @@ def setup_package():
         author=PACKAGE_AUTHOR,
         url=PACKAGE_URL,
 
-        setup_requires=['sphinx', 'sphinxcontrib-httpdomain', ] + list(get_requirements('requirements.txt')),
         version=get_version_number(),
-        packages=get_packages(),
+        packages=packages,
+        package_data=dict(
+            build_package_data(packages, '*.tpl')),
 
+        setup_requires=setup_requires,
         install_requires=list(
             get_requirements('requirements.txt')),
         tests_require=list(
@@ -105,10 +149,11 @@ def setup_package():
                 'pofhd = pofh.__main__:main'
             ]
         },
-
         cmdclass={
-            'test': Tox
-        },
+            'test': PyTest,
+            'pytest': PyTest,
+            'tox': Tox,
+        }
     )
 
 

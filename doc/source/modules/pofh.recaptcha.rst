@@ -1,14 +1,30 @@
 ==============
 pofh.recaptcha
 ==============
-A simple Google reCAPTCHA validator for flask applications.
+.. automodule:: pofh.recaptcha
 
-To set up and use reCAPTCHA, you'll need to:
+Use
+---
+To set up and use recaptcha, you'll need to:
 
-1. Configure the recaptcha module for your app (with ``init_app``).
+1. Configure the recaptcha module for your app (with the `Recaptcha app`_).
 2. Decorate your request handlers with the `require_recaptcha`_ wrapper.
 
-.. automodule:: pofh.recaptcha
+
+Recaptcha app
+=============
+.. autoclass:: pofh.recaptcha.Recaptcha
+   :members:
+
+init_app
+--------
+If initialized with :py:func:`pofh.recaptcha.init_app`, the application setup
+will fail with a :py:class:`RuntimeError` if the module is configured
+incorrectly.
+
+If Flask debug mode is set, two additional routes will be set up in the
+application that allows you to test the Recaptcha integration.
+
 .. autofunction:: pofh.recaptcha.init_app
 
 
@@ -27,13 +43,12 @@ returned from the request handler.
 .. autofunction:: pofh.recaptcha.require_recaptcha
 
 
-ReCaptcha
-=========
-The reCAPTHCA validator is implemented as a simple class:
+RecaptchaClient
+===============
+The recaptcha validator is implemented as a separate class:
 
-.. autoclass:: pofh.recaptcha.ReCaptcha
+.. autoclass:: pofh.recaptcha.RecaptchaClient
    :members:
-
 
 Signals
 -------
@@ -79,8 +94,8 @@ Example
         @signal.connect()
         def logger(sender, **kw):
             print("Recaptcha failed: {!r}".format(kw))
-        validator = ReCaptcha()
-        validator.verify("foo", "127.0.0.1")
+        validator = RecaptchaClient()
+        validator("foo", "127.0.0.1")
 
 
 Example
@@ -90,12 +105,10 @@ Example
 
     app = Flask('foo')
     app.config['RECAPTCHA_ENABLE'] = True
-    app.config['RECAPTCHA_SITE_KEY'] = 'foo'
     app.config['RECAPTCHA_SECRET_KEY'] = 'bar'
-    init_app(app)
+    Recaptcha(app)
 
     @app.route('/foo', methods=['POST', ]
     @require_recaptcha(field='g-recaptcha-response')
     def foo():
         return "Recaptcha OK!"
-

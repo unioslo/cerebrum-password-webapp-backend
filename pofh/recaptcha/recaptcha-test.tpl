@@ -73,10 +73,20 @@
             <h1>ReCAPTCHA test page</h1>
             <p>This page can be used to test the ReCAPTCHA setup.</p>
 
+            <h2>Setup</h2>
+            <dl>
+                <dt>Site key</dt>
+                <dd><pre>{{ recaptcha.site_key }}</pre></dd>
+                <dt>Field name</dt>
+                <dd><pre>{{ field }}</pre></dd>
+            </dl>
+
+            <h2>Recaptcha</h2>
             <div class="g-recaptcha"
-                 data-sitekey="{{ site_key }}"
+                 data-sitekey="{{ recaptcha.site_key }}"
                  data-callback="setRecaptchaResponse"></div>
 
+            <h2>Validate</h2>
             <form id="data" method="POST" action="{{ action }}">
                 <label for="recaptcha">Recaptcha response</label>
                 <br/>
@@ -86,6 +96,11 @@
                 <br />
                 <input type="submit" value="Validate recaptcha"/>
             </form>
+
+            {% if not recaptcha.enabled -%}
+                <p>NOTE: Recaptcha validation is disabled, the response will not
+                get validated!</p>
+            {%- endif %}
 
             <div id="response"></div>
         </div>

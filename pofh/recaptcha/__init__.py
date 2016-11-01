@@ -16,11 +16,12 @@ The following settings are used from the Flask configuration:
     The secret key for ReCAPTCHA.
 
 ``RECAPTCHA_VERIFY_URL`` (:py:class:`str`)
-    The URL used to verify a CAPTCHA field.
+    The URL used to verify a ReCAPTCHA field.
 
 """
 from __future__ import unicode_literals
 
+from werkzeug.local import LocalProxy
 from werkzeug.exceptions import BadRequest
 from flask import request, current_app
 from flask import Blueprint, url_for, render_template
@@ -30,59 +31,45 @@ import blinker
 from warnings import warn
 
 
-DEFAULTS = {
+DEFAULT_FIELD_NAME = 'g-recaptcha-response'
+
+DEFAULT_CONFIG = {
     'RECAPTCHA_ENABLE': False,
     'RECAPTCHA_SITE_KEY': '',
-    'RECAPTCHA_SECRET_KEY': '',
+    'RECAPTCHA_SECRET_KEY': None,
     'RECAPTCHA_VERIFY_URL': 'https://www.google.com/recaptcha/api/siteverify',
 }
 
 
-def from_config(config):
-    for setting in ('RECAPTCHA_SITE_KEY',
-                    'RECAPTCHA_SECRET_KEY',
-                    'RECAPTCHA_VERIFY_URL'):
-        if not config.get(setting, None):
-            raise RuntimeError(
-                "Missing setting '{!s}'".format(setting))
-    return ReCaptcha(
-        config['RECAPTCHA_SITE_KEY'],
-        config['RECAPTCHA_SECRET_KEY'],
-        config['RECAPTCHA_VERIFY_URL']
-    )
+class RecaptchaClient(object):
+    """ Google ReCAPTCHA validator.
 
+    Usage:
 
-class ReCaptcha(object):
-    """ Google reCAPTCHA validator. """
+    ::
 
-    signal_start = blinker.signal('recaptcha.start')
-    signal_done = blinker.signal('recaptcha.done')
-    signal_error = blinker.signal('recaptcha.error')
+        secret_key = "6Le..."
+        verify_url = "https://www.google.com/recaptcha/api/siteverify"
+        response = "03AHJ..."
+        remoteip = "127.0.0.1"
+        validator = RecaptchaClient(secret_key, verify_url)
+        validator(response, remoteip)
+    """
 
-    def __init__(self, site_key, secret_key, verify_url):
-        self.site_key = site_key
+    signal_start = blinker.signal('pofh.recaptcha.start')
+    signal_done = blinker.signal('pofh.recaptcha.done')
+    signal_error = blinker.signal('pofh.recaptcha.error')
+
+    def __init__(self, secret_key, verify_url):
         self.secret_key = secret_key
         self.verify_url = verify_url
-
-    @property
-    def enabled(self):
-        """ If recaptcha is enabled or not. """
-        # TODO: The class doesn't even look at this?
-        try:
-            return self._enabled
-        except AttributeError:
-            return False
-
-    @enabled.setter
-    def enabled(self, value):
-        self._enabled = bool(value)
 
     def _check(self, data):
         r = requests.post(self.verify_url, data=data)
         r.raise_for_status()
-        return r.json()["success"]
+        return r.json()["success"] is True
 
-    def verify(self, value, remoteip):
+    def __call__(self, value, remoteip):
         """ Check a reCAPTHCA response.
 
         :param str value: The response to check
@@ -111,10 +98,96 @@ class ReCaptcha(object):
             raise
 
 
-_recaptcha = ReCaptcha(None, None, None)
+class Recaptcha(object):
+    """ Simple application wrapper for registering the Recaptcha class.
+
+    Usage:
+
+    ::
+
+        app = Flask('foo')
+        middleware = Recaptcha(app)
+        # or
+        middleware = Recaptcha()
+        middleware.init_app(app)
+    """
+
+    recaptcha_ext_name = 'pofh.recaptcha'
+
+    def __init__(self, app=None):
+        self.__app = None
+        if app is not None:
+            self.init_app(app)
+
+    def init_app(self, app):
+        """ Initialize app from app config. """
+        for k, v in DEFAULT_CONFIG.items():
+            app.config.setdefault(k, v)
+
+        self.__app = app
+
+        if not hasattr(app, 'extensions'):
+            app.extensions = {}
+        app.extensions[self.recaptcha_ext_name] = self
+
+    def __conf(self, name, default=None):
+        value = default
+        if self.__app is not None:
+            value = self.__app.config.get(name, default)
+        if value is None:
+            raise AttributeError("No '{!s}' set".format(name))
+        return value
+
+    @property
+    def enabled(self):
+        """ If recaptcha is enabled in this middleware app. """
+        return bool(self.__conf('RECAPTCHA_ENABLE', False))
+
+    @property
+    def site_key(self):
+        """ The site key from the app configuration. """
+        return self.__conf('RECAPTCHA_SITE_KEY', '')
+
+    @property
+    def secret_key(self):
+        """ The secret key from the app configuration. """
+        return self.__conf('RECAPTCHA_SECRET_KEY')
+
+    @property
+    def verify_url(self):
+        """ The URL used to verify recaptcha responses. """
+        return self.__conf('RECAPTCHA_VERIFY_URL')
+
+    @property
+    def client(self):
+        """ The recaptcha client (RecaptchaClient). """
+        try:
+            return RecaptchaClient(self.secret_key, self.verify_url)
+        except AttributeError as e:
+            raise AttributeError(
+                "RecaptchaClient not configured: {!s}".format(e))
+
+    @classmethod
+    def get_middleware(cls, app):
+        """ Get the Recaptcha middleware app from a flask app object.
+
+        :param flask.Flask app: The application.
+
+        :return Recaptcha: The Recaptcha middleware app.
+
+        :raises RuntimeError: If the recaptcha middleware has not been set up.
+        """
+        try:
+            return app.extensions[cls.recaptcha_ext_name]
+        except (AttributeError, KeyError):
+            raise RuntimeError("Recaptcha not initialized")
 
 
-def require_recaptcha(field="g-recaptcha-response"):
+recaptcha = LocalProxy(lambda: Recaptcha.get_middleware(current_app))
+""" ``LocalProxy`` for ``Recaptcha.get_middleware(current_app).`` """
+
+
+def require_recaptcha(field=DEFAULT_FIELD_NAME):
     """ Require a recaptcha field in requests.
 
     :param str field: Which field to look for a recaptcha response in.
@@ -122,7 +195,7 @@ def require_recaptcha(field="g-recaptcha-response"):
     def wrap(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            if _recaptcha.enabled:
+            if recaptcha.enabled:
                 current_app.logger.debug(
                     "recaptcha: checking field '{!s}'".format(field))
                 if request.is_json:
@@ -130,7 +203,7 @@ def require_recaptcha(field="g-recaptcha-response"):
                 else:
                     data = request.form
 
-                if _recaptcha.verify(
+                if recaptcha.client(
                         data.get(field),
                         request.environ.get('REMOTE_ADDR')):
                     current_app.logger.info("recaptcha: valid")
@@ -145,38 +218,39 @@ def require_recaptcha(field="g-recaptcha-response"):
     return wrap
 
 
-TEST_FIELD_NAME = 'g-recaptcha-response'
-
 TEST_API = Blueprint('recaptcha', __name__,
-                     url_prefix='/recaptcha-test',
+                     url_prefix='/recaptcha',
                      template_folder='.')
 
 
 @TEST_API.route('/', methods=['GET', ])
 def render_page():
+    """ Render a ReCAPTCHA test page. """
     return render_template(
         'recaptcha-test.tpl',
-        site_key=current_app.config.get('RECAPTCHA_SITE_KEY'),
+        recaptcha=recaptcha,
         action=url_for('.verify_response'),
-        field=TEST_FIELD_NAME)
+        field=DEFAULT_FIELD_NAME)
 
 
 @TEST_API.route('/verify', methods=['POST', ])
-@require_recaptcha(field=TEST_FIELD_NAME)
+@require_recaptcha(field=DEFAULT_FIELD_NAME)
 def verify_response():
-    return ('', 204)
+    """ Validate a ReCAPTCHA response. """
+    if not recaptcha.enabled:
+        return ('Recaptcha disabled', 501)
+    else:
+        return ('', 204)
 
 
 def init_app(app):
     """ Configure reCAPTCHA. """
-    global _recaptcha
-    for k, v in DEFAULTS.items():
-        app.config.setdefault(k, v)
+    middleware = Recaptcha(app)
 
-    if app.config['RECAPTCHA_ENABLE']:
-        _recaptcha = from_config(app.config)
-        _recaptcha.enabled = True
-        if app.debug:
-            app.register_blueprint(TEST_API)
-    else:
+    if app.debug:
+        app.register_blueprint(TEST_API)
+
+    if not middleware.enabled:
         warn(RuntimeWarning("Recaptcha disabled"))
+    else:
+        middleware.client

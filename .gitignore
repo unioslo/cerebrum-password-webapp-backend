@@ -33,5 +33,5 @@ cover/*
 MANIFEST
 
 # other stuff
-db
 instance/*
+.filebeat

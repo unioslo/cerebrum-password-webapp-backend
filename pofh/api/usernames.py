@@ -13,10 +13,12 @@ from marshmallow import fields, Schema
 
 from ..idm import get_idm_client
 from ..recaptcha import require_recaptcha
+from ..stats import statsd
 from . import utils
 
 
 API = Blueprint('usernames', __name__)
+USERNAME_METRIC_INIT = "kpi.username.init"
 
 
 class IdentitySchema(Schema):
@@ -56,9 +58,7 @@ def list_for_person(data):
         raise IdentityError()
 
     usernames = client.get_usernames(person_id)
-
-    # TODO: Record stats?
-
+    statsd.incr(USERNAME_METRIC_INIT)
     return jsonify({'usernames': usernames, })
 
 

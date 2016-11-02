@@ -54,10 +54,6 @@ class DummyStatsdClient(StatsClientBase):
 class Statsd(FlaskExtension):
     """ Statsd proxy/factory for flask applications. """
 
-    def __init__(self, app=None):
-        self.statsd = None
-        super(Statsd, self).__init__(app=app)
-
     def init_app(self, app):
         super(Statsd, self).init_app(app)
         self.set_config_default('enable', False)

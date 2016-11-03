@@ -165,7 +165,6 @@ def require_recaptcha(field=DEFAULT_FIELD_NAME):
                     data = request.get_json()
                 else:
                     data = request.form
-
                 if recaptcha.client(
                         data.get(field),
                         request.environ.get('REMOTE_ADDR')):

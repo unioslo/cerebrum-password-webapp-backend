@@ -199,10 +199,9 @@ def require_recaptcha(field=DEFAULT_FIELD_NAME):
                 current_app.logger.debug(
                     "recaptcha: checking field '{!s}'".format(field))
                 if request.is_json:
-                    data = request.json()
+                    data = request.json
                 else:
                     data = request.form
-
                 if recaptcha.client(
                         data.get(field),
                         request.environ.get('REMOTE_ADDR')):

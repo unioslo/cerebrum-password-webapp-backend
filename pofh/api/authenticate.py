@@ -13,7 +13,8 @@ from marshmallow import fields, Schema
 from ..auth import encode_token
 from ..idm import get_idm_client
 from ..recaptcha import require_recaptcha
-from . import utils
+from .utils import input_schema
+from .apierror import ApiError
 from .password import create_password_token
 
 
@@ -26,14 +27,14 @@ class BasicAuthSchema(Schema):
     password = fields.String(required=True, allow_none=False)
 
 
-class BasicAuthError(utils.ApiError):
+class BasicAuthError(ApiError):
     code = 401
     error_type = 'invalid-creds'
 
 
 @API.route('/authenticate', methods=['POST'])
 @require_recaptcha()
-@utils.input_schema(BasicAuthSchema)
+@input_schema(BasicAuthSchema)
 def authenticate(data):
     """ Authenticate using username and password.
 

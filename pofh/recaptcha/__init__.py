@@ -30,15 +30,11 @@ import requests
 import blinker
 from warnings import warn
 
+from ..extension import FlaskExtension
+
 
 DEFAULT_FIELD_NAME = 'g-recaptcha-response'
-
-DEFAULT_CONFIG = {
-    'RECAPTCHA_ENABLE': False,
-    'RECAPTCHA_SITE_KEY': '',
-    'RECAPTCHA_SECRET_KEY': None,
-    'RECAPTCHA_VERIFY_URL': 'https://www.google.com/recaptcha/api/siteverify',
-}
+DEFAULT_VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify'
 
 
 class RecaptchaClient(object):
@@ -53,7 +49,9 @@ class RecaptchaClient(object):
         response = "03AHJ..."
         remoteip = "127.0.0.1"
         validator = RecaptchaClient(secret_key, verify_url)
-        validator(response, remoteip)
+        if validator(response, remoteip):
+            ...
+
     """
 
     signal_start = blinker.signal('pofh.recaptcha.start')
@@ -98,8 +96,8 @@ class RecaptchaClient(object):
             raise
 
 
-class Recaptcha(object):
-    """ Simple application wrapper for registering the Recaptcha class.
+class Recaptcha(FlaskExtension):
+    """ Recaptcha proxy/factory for flask applications.
 
     Usage:
 
@@ -112,51 +110,32 @@ class Recaptcha(object):
         middleware.init_app(app)
     """
 
-    recaptcha_ext_name = 'pofh.recaptcha'
-
-    def __init__(self, app=None):
-        self.__app = None
-        if app is not None:
-            self.init_app(app)
-
     def init_app(self, app):
-        """ Initialize app from app config. """
-        for k, v in DEFAULT_CONFIG.items():
-            app.config.setdefault(k, v)
-
-        self.__app = app
-
-        if not hasattr(app, 'extensions'):
-            app.extensions = {}
-        app.extensions[self.recaptcha_ext_name] = self
-
-    def __conf(self, name, default=None):
-        value = default
-        if self.__app is not None:
-            value = self.__app.config.get(name, default)
-        if value is None:
-            raise AttributeError("No '{!s}' set".format(name))
-        return value
+        super(Recaptcha, self).init_app(app)
+        self.set_config_default('enable', False)
+        self.set_config_default('site_key', '')
+        self.set_config_default('secret_key', None)
+        self.set_config_default('verify_url', DEFAULT_VERIFY_URL)
 
     @property
     def enabled(self):
-        """ If recaptcha is enabled in this middleware app. """
-        return bool(self.__conf('RECAPTCHA_ENABLE', False))
+        """ If recaptcha is enabled in this app. """
+        return bool(self.get_config('enable'))
 
     @property
     def site_key(self):
         """ The site key from the app configuration. """
-        return self.__conf('RECAPTCHA_SITE_KEY', '')
+        return str(self.get_config('site_key'))
 
     @property
     def secret_key(self):
         """ The secret key from the app configuration. """
-        return self.__conf('RECAPTCHA_SECRET_KEY')
+        return str(self.get_config('secret_key'))
 
     @property
     def verify_url(self):
         """ The URL used to verify recaptcha responses. """
-        return self.__conf('RECAPTCHA_VERIFY_URL')
+        return str(self.get_config('verify_url'))
 
     @property
     def client(self):
@@ -167,24 +146,8 @@ class Recaptcha(object):
             raise AttributeError(
                 "RecaptchaClient not configured: {!s}".format(e))
 
-    @classmethod
-    def get_middleware(cls, app):
-        """ Get the Recaptcha middleware app from a flask app object.
 
-        :param flask.Flask app: The application.
-
-        :return Recaptcha: The Recaptcha middleware app.
-
-        :raises RuntimeError: If the recaptcha middleware has not been set up.
-        """
-        try:
-            return app.extensions[cls.recaptcha_ext_name]
-        except (AttributeError, KeyError):
-            raise RuntimeError("Recaptcha not initialized")
-
-
-recaptcha = LocalProxy(lambda: Recaptcha.get_middleware(current_app))
-""" ``LocalProxy`` for ``Recaptcha.get_middleware(current_app).`` """
+recaptcha = LocalProxy(lambda: Recaptcha.get(current_app))
 
 
 def require_recaptcha(field=DEFAULT_FIELD_NAME):
@@ -199,16 +162,19 @@ def require_recaptcha(field=DEFAULT_FIELD_NAME):
                 current_app.logger.debug(
                     "recaptcha: checking field '{!s}'".format(field))
                 if request.is_json:
-                    data = request.json
+                    data = request.get_json()
                 else:
                     data = request.form
                 if recaptcha.client(
                         data.get(field),
                         request.environ.get('REMOTE_ADDR')):
-                    current_app.logger.info("recaptcha: valid")
+                    current_app.logger.info("recaptcha: valid response")
                 else:
                     current_app.logger.info(
-                        "recaptcha: invalid ({!s})".format(data.get(field)))
+                        "recaptcha: invalid response")
+                    current_app.logger.debug(
+                        "recaptcha: invalid response ({!s})".format(
+                            data.get(field)))
                     raise BadRequest("invalid recaptcha response")
             else:
                 current_app.logger.debug("recaptcha: disabled")

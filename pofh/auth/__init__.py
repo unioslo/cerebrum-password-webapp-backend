@@ -212,7 +212,7 @@ def _check_for_jwt():
             error_info['payload'] = JWTAuthToken.jwt_debug(data)
         except DecodeError as decode_error:
             error_info['decode_error'] = decode_error
-        current_app.logger.debut(
+        current_app.logger.debug(
             "JWT payload={payload!r}, {decode_error!s}".format(**error_info))
         signal_token_error.send(e, **error_info)
         raise Forbidden("Invalid token: {!s})".format(e))

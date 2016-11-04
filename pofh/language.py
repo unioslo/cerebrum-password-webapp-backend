@@ -50,7 +50,7 @@ def parse_language_item(lang_item):
     >>> parse_language_item('en')
     ('en', 1.0)
     >>> parse_language_item('en-GB;q=0.8')
-    ('en-gb', 0.8)
+    ('en-GB', 0.8)
 
     :param str lang_item: The language value.
 
@@ -83,7 +83,6 @@ def parse_header(header_value):
     pairs = []
     for item in header_value.split(","):
         try:
-            lang, q = parse_language_item(item)
             pairs.append(parse_language_item(item))
         except ValueError:
             continue
@@ -120,13 +119,16 @@ def get_header_lang(request):
     :rtype: list
     :return:
         A list of language tags (:py:class:`language_tags.Tag.Tag`) from the
-        request headers.
+        request headers, ordered by its ``q``-value, descending.
     """
     header_name = 'Accept-Language'
     languages = []
 
     if header_name in request.headers:
-        for lang, q in parse_header(request.headers[header_name]):
+        for lang, q in sorted(
+                parse_header(request.headers[header_name]),
+                key=lambda t: t[1],
+                reverse=True):
             try:
                 languages.append(parse_language_tag(lang))
             except ValueError:

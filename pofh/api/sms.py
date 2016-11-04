@@ -54,7 +54,8 @@ from ..idm import get_idm_client
 from ..sms import send_sms
 from ..recaptcha import require_recaptcha
 from ..template import add_template, get_localized_template
-from . import utils
+from .utils import input_schema
+from .apierror import ApiError
 from ..redis import store
 from ..stats import statsd
 from .password import create_password_token, NS_SET_PASSWORD
@@ -74,24 +75,21 @@ SMS_METRIC_DONE = "kpi.sms.done"
 SMS_METRIC_DIFF = "kpi.sms.diff"
 
 
-class InvalidNumber(utils.ApiError):
+class InvalidMobileNumber(ApiError):
     code = 400
-    error_type = 'invalid-number'
 
 
-class IdentityError(utils.ApiError):
+class NotFoundError(ApiError):
     code = 400
-    error_type = 'not-found-error'
 
 
-class ServiceUnavailable(utils.ApiError):
+class ServiceUnavailable(ApiError):
     code = 403
     error_type = 'reserved'
 
 
-class InvalidNonce(utils.ApiError):
+class InvalidNonce(ApiError):
     code = 401
-    error_type = 'invalid-nonce'
 
 
 # default sms template
@@ -149,7 +147,7 @@ def clear_nonce(identifier):
 
 @API.route('', methods=['POST'])
 @require_recaptcha()
-@utils.input_schema(SmsIdentitySchema)
+@input_schema(SmsIdentitySchema)
 def identify(data):
     """ Check submitted person info and send sms nonce.
 
@@ -181,11 +179,11 @@ def identify(data):
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 
     if person_id is None:
-        raise IdentityError()
+        raise NotFoundError()
 
     # Check username
     if data["username"] not in client.get_usernames(person_id):
-        raise IdentityError()
+        raise NotFoundError()
     if not client.can_use_sms_service(data["username"]):
         # record stats?
         raise ServiceUnavailable()
@@ -196,7 +194,7 @@ def identify(data):
     #       the IdM
     if data["mobile"] not in client.get_mobile_numbers(person_id):
         # record stats?
-        raise InvalidNumber()
+        raise InvalidMobileNumber()
 
     # Everything is OK, store and send nonce
     identifier = '{!s}:{!s}'.format(data["username"], data["mobile"])
@@ -224,7 +222,7 @@ def identify(data):
 
 @API.route('/verify', methods=['POST', ])
 @auth.require_jwt(namespaces=[NS_VERIFY_NONCE, ])
-@utils.input_schema(NonceSchema)
+@input_schema(NonceSchema)
 def verify_code(data):
     """ Check submitted sms nonce.
 

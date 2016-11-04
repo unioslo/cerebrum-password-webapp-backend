@@ -15,8 +15,8 @@ from marshmallow import fields, Schema
 from .. import auth
 from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client
-from ..stats import statsd
-from . import utils
+from .apierror import ApiError
+from .utils import input_schema
 
 
 API = Blueprint('password', __name__)
@@ -36,7 +36,7 @@ class ResetPasswordSchema(Schema):
     password = fields.String(required=True, allow_none=False)
 
 
-class InvalidNewPassword(utils.ApiError):
+class InvalidNewPassword(ApiError):
     code = 400
     error_type = 'weak-password'
 
@@ -47,7 +47,7 @@ def create_password_token(username):
 
 @API.route('/password', methods=['POST'])
 @auth.require_jwt(namespaces=[NS_SET_PASSWORD, ])
-@utils.input_schema(ResetPasswordSchema)
+@input_schema(ResetPasswordSchema)
 def change_password(data):
     """ Set a new password.
 

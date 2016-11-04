@@ -31,12 +31,45 @@ read from the application config dict:
 
 """
 
+import blinker
 from datetime import timedelta
 from flask import current_app, request, g
 from functools import wraps
-from jwt.exceptions import InvalidTokenError
+from jwt.exceptions import InvalidTokenError, DecodeError
 from werkzeug.exceptions import Unauthorized, Forbidden
 from .token import JWTAuthToken
+
+
+signal_token_read = blinker.signal('auth.token.read')
+""" Signals that a valid token has been accepted.
+
+The sender is the token that was read from the request. Additional keywords:
+
+value
+    The encoded and signed input value
+"""
+
+signal_token_error = blinker.signal('auth.token.error')
+""" Signals that an invalid token has been submitted.
+
+The sender is the error that occured. Additional keywords:
+
+raw
+    The raw input token string (signed, encoded).
+payload
+    The token payload, if we were able to decode it.
+decode_error
+    DecodeError, if unable to extract a payload from the token.
+"""
+
+signal_token_sign = blinker.signal('auth.token.sign')
+""" Signals that a token has been signed.
+
+The sender is the token that was signed. Additional keywords:
+
+value
+    The signed, encoded value.
+"""
 
 
 DEFAULTS = {
@@ -128,7 +161,9 @@ def require_jwt(namespaces=None):
 
 def encode_token(token):
     """ Sign and encode a token using the current app secret. """
-    return token.jwt_encode(get_secret(current_app))
+    signed_token = token.jwt_encode(get_secret(current_app))
+    signal_token_sign.send(token, value=signed_token)
+    return signed_token
 
 
 def _get_auth_data(req):
@@ -164,18 +199,23 @@ def _check_for_jwt():
 
     try:
         g.current_token = JWTAuthToken.jwt_decode(
-            data, get_secret(current_app),
+            data,
+            get_secret(current_app),
             leeway=current_app.config['JWT_LEEWAY'])
         current_app.logger.info(
             "Valid JWT ({!r}))".format(g.current_token))
+        signal_token_read.send(g.current_token, value=data)
     except InvalidTokenError as e:
+        current_app.logger.info("Invalid JWT: {!s}".format(e))
+        error_info = {'raw': data, 'payload': None, 'decode_error': None, }
         try:
-            token_data = JWTAuthToken.jwt_debug(data)
-        except Exception as e:
-            token_data = dict(error=str(e))
-        current_app.logger.info(
-            "Invalid JWT ({!s}, data={!r})".format(e, token_data))
-        raise Forbidden("Invalid token: {!s}".format(e))
+            error_info['payload'] = JWTAuthToken.jwt_debug(data)
+        except DecodeError as decode_error:
+            error_info['decode_error'] = decode_error
+        current_app.logger.debug(
+            "JWT payload={payload!r}, {decode_error!s}".format(**error_info))
+        signal_token_error.send(e, **error_info)
+        raise Forbidden("Invalid token: {!s})".format(e))
 
 
 def init_app(app):

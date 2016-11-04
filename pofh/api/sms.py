@@ -48,7 +48,7 @@ from flask import Blueprint
 from marshmallow import fields, Schema
 from datetime import timedelta
 
-from ..auth import require_jwt, encode_token
+from .. import auth
 from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client
 from ..sms import send_sms
@@ -57,7 +57,8 @@ from ..template import add_template, get_localized_template
 from .utils import input_schema
 from .apierror import ApiError
 from ..redis import store
-from .password import create_password_token
+from ..stats import statsd
+from .password import create_password_token, NS_SET_PASSWORD
 
 
 API = Blueprint('sms', __name__, url_prefix='/sms')
@@ -67,6 +68,11 @@ NS_VERIFY_NONCE = 'allow-verify-nonce'
 NONCE_PREFIX = 'sms-nonce:'
 NONCE_DEFAULT_LENGTH = 6
 NONCE_DEFAULT_EXPIRE_MINUTES = 10
+
+SMS_METRIC_TIME = "kpi.sms.time_used"
+SMS_METRIC_INIT = "kpi.sms.init"
+SMS_METRIC_DONE = "kpi.sms.done"
+SMS_METRIC_DIFF = "kpi.sms.diff"
 
 
 class InvalidMobileNumber(ApiError):
@@ -169,8 +175,6 @@ def identify(data):
         403: reserved
 
     """
-    # TODO: Record stats / start time?
-
     client = get_idm_client()
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 
@@ -211,13 +215,13 @@ def identify(data):
     token = JWTAuthToken.new(namespace=NS_VERIFY_NONCE,
                              identity=identifier)
     return jsonify({
-        'token': encode_token(token),
+        'token': auth.encode_token(token),
         'href': url_for('.verify_code'),
     })
 
 
 @API.route('/verify', methods=['POST', ])
-@require_jwt(namespaces=[NS_VERIFY_NONCE, ])
+@auth.require_jwt(namespaces=[NS_VERIFY_NONCE, ])
 @input_schema(NonceSchema)
 def verify_code(data):
     """ Check submitted sms nonce.
@@ -249,7 +253,7 @@ def verify_code(data):
     token = create_password_token(username)
 
     return jsonify({
-        'token': encode_token(token),
+        'token': auth.encode_token(token),
         'href': url_for('password.change_password')
     })
 
@@ -263,6 +267,41 @@ def test_template():
         template,
         code=generate_nonce(length),
         minutes=expire.total_seconds()//60)
+
+
+@auth.signal_token_sign.connect
+def _record_metric_init(token, **kwargs):
+    """ Records usage metrics. """
+    # Whenever a *new* token with namespace `NS_VERIFY_NONCE` is signed, we
+    # assume new "sms session" has been started.
+    if (token.namespace != NS_VERIFY_NONCE or
+            (g.current_token is not None and
+             g.current_token.jti == token.jti)):
+        # ignore unrelated tokens and token renewal
+        return
+    statsd.incr(SMS_METRIC_INIT)
+    statsd.incr(SMS_METRIC_DIFF)
+
+
+@auth.signal_token_sign.connect
+def _record_metric_done(token, **kwargs):
+    """ Records usage metrics. """
+    # This is intended as a receiver for `auth.signal_token_sign`. Whenever a
+    # *new* token with namespace `NS_SET_PASSWORD` is signed, using a
+    # `NS_VERIFY_NONCE` token, we regard the "sms session" to be over.
+    if (g.current_token is None or
+            g.current_token.namespace != NS_VERIFY_NONCE or
+            token.namespace != NS_SET_PASSWORD):
+        # unrelated event
+        return
+    try:
+        time_used_ms = int(
+            (token.iat - g.current_token.iat).total_seconds() * 1000)
+    except:
+        return
+    statsd.timing(SMS_METRIC_TIME, time_used_ms)
+    statsd.incr(SMS_METRIC_DONE)
+    statsd.decr(SMS_METRIC_DIFF)
 
 
 def init_api(app):

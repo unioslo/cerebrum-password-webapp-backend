@@ -7,10 +7,12 @@ JWT that allows them to do so.
 """
 from __future__ import unicode_literals, absolute_import
 
+import datetime
+import blinker
 from flask import g, Blueprint
 from marshmallow import fields, Schema
 
-from ..auth import require_jwt
+from .. import auth
 from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client
 from .apierror import ApiError
@@ -20,6 +22,13 @@ from .utils import input_schema
 API = Blueprint('password', __name__)
 
 NS_SET_PASSWORD = 'allow-set-password'
+
+PASSWORD_METRIC_TIME = "kpi.password.time_used"
+PASSWORD_METRIC_INIT = "kpi.password.init"
+PASSWORD_METRIC_DONE = "kpi.password.done"
+PASSWORD_METRIC_DIFF = "kpi.password.diff"
+
+signal_password_changed = blinker.signal('pofh.api.password.password-changed')
 
 
 class ResetPasswordSchema(Schema):
@@ -37,7 +46,7 @@ def create_password_token(username):
 
 
 @API.route('/password', methods=['POST'])
-@require_jwt(namespaces=[NS_SET_PASSWORD, ])
+@auth.require_jwt(namespaces=[NS_SET_PASSWORD, ])
 @input_schema(ResetPasswordSchema)
 def change_password(data):
     """ Set a new password.
@@ -65,15 +74,39 @@ def change_password(data):
         raise InvalidNewPassword()
 
     client.set_new_password(username, data["password"])
+    signal_password_changed.send(None)
 
     # TODO: Invalidate token?
     #  - we should keep a blacklist with used tokens in our redis store
 
-    # TODO: Record stats:
-    #  - score?
-    #  - time from start?
-
     return ('', 204)
+
+
+@auth.signal_token_sign.connect
+def _record_metric_init(token, **kwargs):
+    """ Records usage metrics. """
+    # Whenever a *new* token with namespace `NS_SET_PASSWORD` is signed, we
+    # assume new "password-change session" has been started.
+    if (token.namespace != NS_SET_PASSWORD or
+            (g.current_token is not None and
+             g.current_token.jti == token.jti)):
+        # ignore unrelated tokens and token renewal
+        return
+    statsd.incr(PASSWORD_METRIC_INIT)
+    statsd.incr(PASSWORD_METRIC_DIFF)
+
+
+@signal_password_changed.connect
+def _record_metric_done(*args, **kwargs):
+    """ Records usage metrics. """
+    try:
+        time_used_ms = int((datetime.datetime.utcnow() -
+                            g.current_token.iat).total_seconds() * 1000)
+    except:
+        return
+    statsd.timing(PASSWORD_METRIC_TIME, time_used_ms)
+    statsd.incr(PASSWORD_METRIC_DONE)
+    statsd.decr(PASSWORD_METRIC_DIFF)
 
 
 def init_api(app):

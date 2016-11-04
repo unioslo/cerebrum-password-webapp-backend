@@ -2,48 +2,31 @@
 """ Simple api utils. """
 from __future__ import unicode_literals, absolute_import
 
-from flask import request, jsonify
+from flask import request
 from functools import wraps
-
-
-class ApiError(Exception):
-    """ Api Error. """
-
-    code = 400
-    error_type = "generic-api-error"
-
-    def __init__(self, details=None):
-        super(ApiError, self).__init__(self.error_type)
-        self.details = details or None
-
-    def __repr__(self):
-        return "{!s}(details={!r})".format(
-            self.__class__.__name__,
-            self.details)
-
-
-def handle_api_error(error):
-    """ Error handler for errors of type ApiError. """
-    response = jsonify(
-        error=error.error_type,
-        details=error.details or {},
-    )
-    response.status_code = error.code
-    return response
+from . import apierror
 
 
 def get_request_data(req):
-    """ Get request data. """
+    """ Get request data.
+
+    Gets request data from the following Content-Types:
+
+    - application/json
+    - multipart/form-data
+    - application/x-www-form-urlencoded
+    - application/x-url-encoded
+
+    """
     if req.is_json:
         return req.get_json()
     else:
         return req.form
 
 
-class SchemaError(ApiError):
+class SchemaError(apierror.ApiError):
     """ Schema validation error."""
     code = 400
-    error_type = "schema-error"
 
 
 def validate_schema(schema_type):

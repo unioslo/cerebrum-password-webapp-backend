@@ -13,7 +13,8 @@ from marshmallow import fields, Schema
 
 from ..idm import get_idm_client
 from ..recaptcha import require_recaptcha
-from . import utils
+from .utils import input_schema
+from .apierror import ApiError
 
 
 API = Blueprint('usernames', __name__)
@@ -25,14 +26,13 @@ class IdentitySchema(Schema):
     identifier = fields.String(required=True, allow_none=False)
 
 
-class IdentityError(utils.ApiError):
+class NotFoundError(ApiError):
     code = 400
-    error_type = 'person-not-found'
 
 
 @API.route('/list-usernames', methods=['POST'])
 @require_recaptcha()
-@utils.input_schema(IdentitySchema)
+@input_schema(IdentitySchema)
 def list_for_person(data):
     """ Authenticate using person info.
 
@@ -53,7 +53,7 @@ def list_for_person(data):
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 
     if person_id is None:
-        raise IdentityError()
+        raise NotFoundError()
 
     usernames = client.get_usernames(person_id)
 

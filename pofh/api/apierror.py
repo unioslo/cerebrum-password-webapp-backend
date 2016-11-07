@@ -67,7 +67,7 @@ class ApiError(with_metaclass(ApiErrorType, Exception)):
     def subtypes(cls):
         """ Recursively list all subtypes of this type. """
         for sub in cls.__subclasses__():
-            for subsub in sub.list_subtypes():
+            for subsub in sub.subtypes():
                 yield subsub
             yield sub
 

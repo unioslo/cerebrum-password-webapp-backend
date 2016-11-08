@@ -19,7 +19,7 @@ from . import idm
 from . import recaptcha
 from . import language
 from . import template
-from . import redis
+from . import redisclient
 from . import stats
 
 __VERSION__ = '0.1.0'
@@ -201,7 +201,7 @@ class WsgiApp(object):
         cors.init_app(app)
 
         # setup storage
-        redis.init_app(app)
+        redisclient.init_app(app)
 
         # setup api
         stats.init_app(app)

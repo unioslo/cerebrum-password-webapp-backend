@@ -4,7 +4,7 @@ from __future__ import unicode_literals, absolute_import
 
 from flask import request
 from functools import wraps
-from . import apierror
+from .. import apierror
 
 
 def get_request_data(req):

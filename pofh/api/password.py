@@ -15,7 +15,7 @@ from marshmallow import fields, Schema
 from .. import auth
 from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client
-from .apierror import ApiError
+from ..apierror import ApiError
 from .utils import input_schema
 
 

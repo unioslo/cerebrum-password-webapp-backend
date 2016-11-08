@@ -22,7 +22,6 @@ The following settings are used from the Flask configuration:
 from __future__ import unicode_literals
 
 from werkzeug.local import LocalProxy
-from werkzeug.exceptions import BadRequest
 from flask import request, current_app
 from flask import Blueprint, url_for, render_template
 from functools import wraps
@@ -31,10 +30,15 @@ import blinker
 from warnings import warn
 
 from ..extension import FlaskExtension
+from ..apierror import ApiError
 
 
 DEFAULT_FIELD_NAME = 'g-recaptcha-response'
 DEFAULT_VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify'
+
+
+class InvalidRecaptcha(ApiError):
+    pass
 
 
 class RecaptchaClient(object):
@@ -175,7 +179,7 @@ def require_recaptcha(field=DEFAULT_FIELD_NAME):
                     current_app.logger.debug(
                         "recaptcha: invalid response ({!s})".format(
                             data.get(field)))
-                    raise BadRequest("invalid recaptcha response")
+                    raise InvalidRecaptcha()
             else:
                 current_app.logger.debug("recaptcha: disabled")
             return func(*args, **kwargs)

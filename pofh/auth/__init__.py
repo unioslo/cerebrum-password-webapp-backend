@@ -36,7 +36,7 @@ from datetime import timedelta
 from flask import current_app, request, g
 from functools import wraps
 from jwt.exceptions import InvalidTokenError, DecodeError
-from werkzeug.exceptions import Unauthorized, Forbidden
+from ..apierror import ApiError
 from .token import JWTAuthToken
 
 
@@ -82,7 +82,7 @@ DEFAULTS = {
 }
 
 
-class Challenge(Unauthorized):
+class Unauthorized(ApiError):
     """ Unauthorized HTTP error with WWW-Authenticate data.
 
     >>> e = Unauthorized()
@@ -95,19 +95,24 @@ class Challenge(Unauthorized):
     >>> 'Basic realm="foo"' in e.get_response().headers.get('WWW-Authenticate')
     True
     """
+    code = 401
 
     def __init__(self, message, scheme=None, realm=None):
         self.realm = realm
         self.scheme = scheme
-        super(Challenge, self).__init__(message)
+        super(Unauthorized, self).__init__(message)
 
     def get_response(self, *args, **kwargs):
-        response = super(Challenge, self).get_response(*args, **kwargs)
+        response = super(Unauthorized, self).get_response(*args, **kwargs)
         if self.scheme is not None:
             response.www_authenticate.type = self.scheme
         if self.realm is not None:
             response.www_authenticate.realm = self.realm
         return response
+
+
+class Forbidden(ApiError):
+    code = 403
 
 
 def get_secret(app):
@@ -143,8 +148,8 @@ def require_jwt(namespaces=None):
         @wraps(func)
         def wrapper(*args, **kwargs):
             if g.current_token is None:
-                raise Challenge("Needs authentication",
-                                current_app.config['JWT_AUTH_SCHEME'])
+                raise Unauthorized("Needs authentication",
+                                   current_app.config['JWT_AUTH_SCHEME'])
             if namespaces and g.current_token.namespace not in namespaces:
                 raise Forbidden(
                     "Invalid token: Cannot be used for this resource.")

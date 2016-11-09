@@ -116,14 +116,18 @@ class MockClient(IdmClient):
     _default_db = {
         "persons": {
             "1": {
-                "users": ["foo", ],
-                "mobile": ["+4720000000", "+4720000001", ],
+                "users": ["foo", "bar"],
+                "mobile": ["+4720000000", "+4720000001", "+4791000000" ],
             }
         },
         "users": {
             "foo": {
                 "password": "hunter2",
                 "can_use_sms": True,
+            },
+            "bar": {
+                "password": "hunter2",
+                "can_use_sms": False,
             }
         }
     }

@@ -239,23 +239,22 @@ class CerebrumClient(client.IdmClient):
                 'password': password,
             }
         )
-        return result.json.get('verified', False)
+        return result.json().get('verified', False)
 
     def check_new_password(self, username, password):
         result = self._do_post(
-            self._PASSW_VERIFY.format(username=username),
+            self._PASSW_CHECK.format(username=username),
             d={
                 'password': password,
             }
         )
-        return result.json
+        return result.json().get('passed', False)
 
     def set_new_password(self, username, password):
-        raise NotImplementedError()
         result = self._do_post(
             self._PASSW_SET.format(username=username),
             d={
                 'password': password,
             }
         )
-        return result.json.get('verified', False)
+        return bool(result.json().get('password', False))

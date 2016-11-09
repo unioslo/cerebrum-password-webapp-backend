@@ -19,7 +19,7 @@ from . import idm
 from . import recaptcha
 from . import language
 from . import template
-from . import redis
+from . import redisclient
 from . import stats
 from . import apierror
 
@@ -202,7 +202,7 @@ class WsgiApp(object):
         cors.init_app(app)
 
         # setup storage
-        redis.init_app(app)
+        redisclient.init_app(app)
 
         # Handle custom API errors
         apierror.init_app(app)

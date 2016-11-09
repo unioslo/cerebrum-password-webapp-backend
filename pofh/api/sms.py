@@ -55,7 +55,7 @@ from ..sms import send_sms
 from ..recaptcha import require_recaptcha
 from ..template import add_template, get_localized_template
 from .utils import input_schema
-from .apierror import ApiError
+from ..apierror import ApiError
 from ..redisclient import store
 from ..stats import statsd
 from .password import create_password_token, NS_SET_PASSWORD

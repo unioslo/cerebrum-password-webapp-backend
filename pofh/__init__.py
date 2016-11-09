@@ -21,6 +21,7 @@ from . import language
 from . import template
 from . import redisclient
 from . import stats
+from . import apierror
 
 __VERSION__ = '0.1.0'
 
@@ -203,7 +204,10 @@ class WsgiApp(object):
         # setup storage
         redisclient.init_app(app)
 
-        # setup api
+        # Handle custom API errors
+        apierror.init_app(app)
+
+        # setup modules
         stats.init_app(app)
         recaptcha.init_app(app)
         auth.init_app(app)
@@ -211,6 +215,7 @@ class WsgiApp(object):
         idm.init_app(app)
         language.init_app(app)
         template.init_app(app)
+
         api.init_app(app)
 
         return app

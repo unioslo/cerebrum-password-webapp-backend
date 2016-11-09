@@ -16,7 +16,7 @@ from .. import auth
 from ..stats import statsd
 from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client
-from .apierror import ApiError
+from ..apierror import ApiError
 from .utils import input_schema
 
 

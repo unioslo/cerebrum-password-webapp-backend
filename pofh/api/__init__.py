@@ -11,7 +11,6 @@ from . import usernames
 from . import authenticate
 from . import password
 from . import sms
-from . import apierror
 
 
 api_error = signal('api.error')
@@ -56,8 +55,6 @@ def init_app(app):
         for code in _exc.default_exceptions:
             app.errorhandler(code)(handle_error)
 
-    # Handle custom API errors
-    apierror.init_app(app)
 
     @app.route('/renew', methods=['POST', ])
     @auth.require_jwt()

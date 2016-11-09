@@ -15,7 +15,7 @@ from ..idm import get_idm_client
 from ..recaptcha import require_recaptcha
 from ..stats import statsd
 from .utils import input_schema
-from .apierror import ApiError
+from ..apierror import ApiError
 
 
 API = Blueprint('usernames', __name__)

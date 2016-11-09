@@ -106,7 +106,7 @@ def test_signal_error(client_error, catcher):
 
 def test_middleware_init(app):
     Recaptcha(app)
-    assert Recaptcha.recaptcha_ext_name in app.extensions
+    assert Recaptcha.extension_name in app.extensions
 
 
 def test_middleware_disable(app):

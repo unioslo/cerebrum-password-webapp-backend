@@ -134,12 +134,18 @@ class Recaptcha(FlaskExtension):
     @property
     def secret_key(self):
         """ The secret key from the app configuration. """
-        return str(self.get_config('secret_key'))
+        secret = self.get_config('secret_key')
+        if not secret:
+            raise AttributeError("No secret_key set")
+        return str(secret)
 
     @property
     def verify_url(self):
         """ The URL used to verify recaptcha responses. """
-        return str(self.get_config('verify_url'))
+        url = self.get_config('verify_url')
+        if not url:
+            raise AttributeError("No verify_url set")
+        return str(url)
 
     @property
     def client(self):

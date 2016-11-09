@@ -199,7 +199,7 @@ class CerebrumClient(client.IdmClient):
                 'external_id': idvalue,
             }
         )
-        results = data.json.get("results", [])
+        results = data.json().get("results", [])
         return results.pop(0)["person_id"]
 
     def can_use_sms_service(self, username):
@@ -210,7 +210,8 @@ class CerebrumClient(client.IdmClient):
                 'indirect_memberships': True,
             }
         )
-        memberships = [group['name'] for group in groups.json]
+        memberships = [group['name'] for group in
+                       groups.json().get('groups', [])]
         return not any(self.is_reserved_group(name) for name in memberships)
 
     def get_usernames(self, person_id):
@@ -218,7 +219,7 @@ class CerebrumClient(client.IdmClient):
         data = self._do_get(
             self._PERSON_ACCOUNTS.format(pid=person_id)
         )
-        accounts = data.json.get('accounts', [])
+        accounts = data.json().get('accounts', [])
         # TODO: Use href?
         return [item['id'] for item in accounts]
 
@@ -227,7 +228,7 @@ class CerebrumClient(client.IdmClient):
         data = self._do_get(
             self._PERSON_CONTACT.format(pid=person_id)
         )
-        contacts = data.json.get('contacts', [])
+        contacts = data.json().get('contacts', [])
         return [item["value"] for item in contacts
                 if item in self._contact_types]
 

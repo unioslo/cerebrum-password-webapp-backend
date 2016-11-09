@@ -49,11 +49,11 @@ def client_error():
 
 
 def test_recaptcha_success(client, valid, ip):
-    assert client(valid, ip) == True
+    assert client(valid, ip) is True
 
 
 def test_recaptcha_fail(client, invalid, ip):
-    assert client(invalid, ip) == False
+    assert client(invalid, ip) is False
 
 
 def test_recaptcha_error(client_error, valid, ip):
@@ -77,7 +77,7 @@ def test_signal_done_ok(client, catcher, valid, ip):
     assert done.caught[0].sender == client
     assert done.caught[0].args['value'] == valid
     assert done.caught[0].args['remoteip'] == ip
-    assert done.caught[0].args['status'] == True
+    assert done.caught[0].args['status'] is True
 
 
 def test_signal_done_fail(client, catcher, invalid, ip):
@@ -87,7 +87,7 @@ def test_signal_done_fail(client, catcher, invalid, ip):
     assert done.caught[0].sender == client
     assert done.caught[0].args['value'] == invalid
     assert done.caught[0].args['remoteip'] == ip
-    assert done.caught[0].args['status'] == False
+    assert done.caught[0].args['status'] is False
 
 
 def test_signal_error(client_error, catcher):
@@ -106,7 +106,7 @@ def test_signal_error(client_error, catcher):
 
 def test_middleware_init(app):
     Recaptcha(app)
-    assert Recaptcha.recaptcha_ext_name in app.extensions
+    assert Recaptcha.extension_name in app.extensions
 
 
 def test_middleware_disable(app):

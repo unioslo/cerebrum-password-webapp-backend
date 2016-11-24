@@ -2,7 +2,7 @@
 """ The password app API. """
 from __future__ import unicode_literals, absolute_import
 
-from flask import g, jsonify
+from flask import g, jsonify, current_app, request
 import werkzeug.exceptions as _exc
 from blinker import signal
 from .. import auth
@@ -40,6 +40,16 @@ def handle_error(error):
     return response
 
 
+def log_request():
+    jti = ''
+    if g.current_token is not None:
+        jti = g.current_token.jti
+
+    current_app.logger.info(
+        "Request {!s} {!s} jti='{!s}'".format(
+            request.method, request.url_rule, jti))
+
+
 def init_app(app):
     """ Bootstrap the API. """
     # functionality
@@ -49,6 +59,8 @@ def init_app(app):
     # auth methods
     authenticate.init_api(app)
     sms.init_api(app)
+
+    app.before_request(log_request)
 
     # Workaround for https://github.com/pallets/flask/issues/941
     if not app.config.get('DEBUG', False):
@@ -71,4 +83,5 @@ def init_app(app):
 
         """
         g.current_token.renew()
+        current_app.logger.info("Renewed token: {!s}".format(g.current_token.jti))
         return jsonify({'token': auth.encode_token(g.current_token), })

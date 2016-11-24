@@ -24,6 +24,16 @@ class IdmClient(object):
         """
         raise NotImplementedError()
 
+    def can_show_usernames(self, person_id):
+        """ Check if the usernames for a person can be shown.
+
+        :param str person_id:
+            The person to look up.
+        :return bool:
+            Show usernames?
+        """
+        raise NotImplementedError()
+
     def get_usernames(self, person_id):
         """ Fetch a list of usernames for a given person.
 
@@ -117,7 +127,12 @@ class MockClient(IdmClient):
         "persons": {
             "1": {
                 "users": ["foo", "bar"],
-                "mobile": ["+4720000000", "+4720000001", "+4791000000" ],
+                "mobile": ["+4720000000", "+4720000001", "+4791000000"],
+            },
+            "2": {
+                "users": ["baz"],
+                "mobile": ["+4720000002"],
+                "can_show_usernames": False,
             }
         },
         "users": {
@@ -135,8 +150,10 @@ class MockClient(IdmClient):
     def __init__(self, data=None):
         self._db = {}
         if data is None:
+            print 'loading default'
             self.load_data(self._default_db)
         else:
+            print 'loading custom'
             self.load_data(data)
 
     _valid_passwords = ["hunter2", "password1", "fido5", "secret"]
@@ -147,7 +164,6 @@ class MockClient(IdmClient):
             self._db["users"][name]["password"] = info.get("password", "")
             self._db["users"][name]["can_use_sms"] = info.get("can_use_sms",
                                                               False)
-
         for pid, info in data.get("persons", {}).items():
             self._db.setdefault("persons", {})[pid] = dict()
             for name in info.get("users", []):
@@ -157,6 +173,9 @@ class MockClient(IdmClient):
             for number in info.get("mobile", []):
                 self._db["persons"][pid].setdefault("mobile",
                                                     []).append(number)
+            self._db["persons"][pid]["can_show_usernames"] = info.get(
+                "can_show_usernames", True)
+            print self._db["persons"][pid]
 
     def get_person(self, idtype, idvalue):
         if idvalue in self._db["persons"]:
@@ -169,17 +188,35 @@ class MockClient(IdmClient):
         except KeyError:
             return []
 
-    def get_mobile_numbers(self, person_id):
+    def get_mobile_numbers(self, person_id, username):
         try:
             return self._db["persons"][person_id]["mobile"]
         except KeyError:
             return []
 
-    def can_use_sms_service(self, username):
+    def get_preferred_mobile_number(self, person_id):
+        try:
+            return self._db["persons"][person_id]["mobile"][0]
+        except KeyError:
+            return None
+
+    def can_show_usernames(self, person_id):
+        try:
+            return self._db["persons"][person_id]["can_show_usernames"]
+        except KeyError:
+            return True
+
+    def can_use_sms_service(self, person_id, username):
         try:
             return self._db["users"][username]["can_use_sms"]
         except KeyError:
             return False
+
+    def can_authenticate(self, username):
+        try:
+            return self._db["users"][username]["can_authenticate"]
+        except KeyError:
+            return True
 
     def verify_current_password(self, username, password):
         try:

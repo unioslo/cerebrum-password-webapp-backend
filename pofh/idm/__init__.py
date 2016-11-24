@@ -28,6 +28,10 @@ from . import client
 # re-initializing them each request?
 
 
+class IdmClientException(Exception):
+    pass
+
+
 def get_idm_client():
     """ Fetch an IdM client from the current app config.
 

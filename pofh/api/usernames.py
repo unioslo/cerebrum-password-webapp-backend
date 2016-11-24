@@ -9,10 +9,13 @@ from __future__ import unicode_literals, absolute_import
 
 from flask import jsonify
 from flask import Blueprint
+from flask import render_template
 from marshmallow import fields, Schema
 
 from ..idm import get_idm_client
 from ..recaptcha import require_recaptcha
+from ..template import add_template, get_localized_template
+from ..sms import send_sms
 from ..stats import statsd
 from .utils import input_schema
 from ..apierror import ApiError
@@ -30,6 +33,11 @@ class IdentitySchema(Schema):
 
 class NotFoundError(ApiError):
     code = 400
+
+
+# Template for usernames by SMS
+add_template('sms-usernames',
+             "Your usernames:\n{{ usernames }}")
 
 
 @API.route('/list-usernames', methods=['POST'])
@@ -58,6 +66,18 @@ def list_for_person(data):
         raise NotFoundError()
 
     usernames = client.get_usernames(person_id)
+
+    if not usernames:
+        raise NotFoundError()
+
+    if not client.can_show_usernames(person_id):
+        template = get_localized_template('sms-usernames')
+        message = render_template(template, usernames="\n".join(usernames))
+        recipient = client.get_preferred_mobile_number(person_id)
+        if recipient:
+            send_sms(recipient, message)
+        raise NotFoundError()
+
     statsd.incr(USERNAME_METRIC_INIT)
     return jsonify({'usernames': usernames, })
 

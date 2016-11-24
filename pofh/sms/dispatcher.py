@@ -83,7 +83,10 @@ class SmsDispatcher(object):
 
         :return phonenumbers.PhoneNumber: The parsed phone number.
         """
-        return phonenumbers.parse(raw_number, region=self.default_region)
+        try:
+            return phonenumbers.parse(raw_number, region=self.default_region)
+        except phonenumbers.phonenumberutil.NumberParseException:
+            return None
 
     def filter(self, number):
         """ Filter phone number.
@@ -97,6 +100,9 @@ class SmsDispatcher(object):
         :return bool:
             Returns True if the number should be filtered.
         """
+        if number is None:
+            # Unparseable phone number
+            return True
         if not phonenumbers.is_valid_number(number):
             # Invalid phone number
             return True

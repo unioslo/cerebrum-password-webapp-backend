@@ -56,6 +56,9 @@ def authenticate(data):
     # TODO: Should we implement rate limiting here?
     client = get_idm_client()
 
+    if not client.can_authenticate(data["username"]):
+        raise BasicAuthError()
+
     if not client.verify_current_password(data["username"], data["password"]):
         raise BasicAuthError()
 

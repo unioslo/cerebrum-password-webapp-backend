@@ -97,10 +97,10 @@ class Unauthorized(ApiError):
     """
     code = 401
 
-    def __init__(self, message, scheme=None, realm=None):
+    def __init__(self, scheme=None, realm=None):
         self.realm = realm
         self.scheme = scheme
-        super(Unauthorized, self).__init__(message)
+        super(Unauthorized, self).__init__()
 
     def get_response(self, *args, **kwargs):
         response = super(Unauthorized, self).get_response(*args, **kwargs)
@@ -148,11 +148,11 @@ def require_jwt(namespaces=None):
         @wraps(func)
         def wrapper(*args, **kwargs):
             if g.current_token is None:
-                raise Unauthorized("Needs authentication",
-                                   current_app.config['JWT_AUTH_SCHEME'])
+                raise Unauthorized(scheme=current_app.config['JWT_AUTH_SCHEME'])
             if namespaces and g.current_token.namespace not in namespaces:
                 raise Forbidden(
-                    "Invalid token: Cannot be used for this resource.")
+                    details={'required': namespaces,
+                             'current': g.current_token.namespace})
 
             # TODO: Check blacklist, etc?
 

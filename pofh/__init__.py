@@ -26,11 +26,18 @@ from . import apierror
 __VERSION__ = '0.1.0'
 
 
-CONFIG_ENVIRON_NAME = 'POFH_CONFIG'
+APP_CONFIG_ENVIRON_NAME = 'POFH_CONFIG'
 """ Name of an environmet variable to read config file name from.
 
 This is a useful method to set a config file if the application is started
 through a third party application server like *gunicorn*.
+"""
+
+LOG_CONFIG_ENVIRON_NAME = 'POFH_LOG_CONFIG'
+""" Name of an environment variable to read a log config file from.
+
+It can also instruct the app to *not* configure logging, if set to a
+non-existing file.
 """
 
 APP_CONFIG_FILE_NAME = 'pofh.cfg'
@@ -116,9 +123,9 @@ def init_config(app, config):
             "Unknown config file format '{!s}' ({!s})".format(
                 os.path.splitext(config)[1], config))
     else:
-        if app.config.from_envvar(CONFIG_ENVIRON_NAME, silent=True):
+        if app.config.from_envvar(APP_CONFIG_ENVIRON_NAME, silent=True):
             print("Config: Loading config from ${!s} ({!s})".format(
-                CONFIG_ENVIRON_NAME, os.environ[CONFIG_ENVIRON_NAME]))
+                APP_CONFIG_ENVIRON_NAME, os.environ[APP_CONFIG_ENVIRON_NAME]))
         if app.config.from_pyfile(APP_CONFIG_FILE_NAME, silent=True):
             print("Config: Loading config from intance path ({!s})".format(
                 os.path.join(app.instance_path, APP_CONFIG_FILE_NAME)))
@@ -129,39 +136,51 @@ def init_logging(app):
 
     Loads log config from the first available source:
 
-    1. ``app.config["LOG_CONFIG"]`` setting, if set
-    2. ``app.instance_path``/``LOG_CONFIG_FILE_NAME``, if it exists
-    3. ``DEFAULT_LOG_CONFIG``
+    1. LOG_CONFIG_ENVIRON_NAME environment var, if set
+    2. ``app.config["LOG_CONFIG"]`` setting, if set
+    3. ``app.instance_path``/``LOG_CONFIG_FILE_NAME``, if it exists
+    4. ``DEFAULT_LOG_CONFIG``
 
     """
     log_config = app.config.get('LOG_CONFIG')
 
     def _load_config_file(filename):
-        logging.config.fileConfig(filename,
-                                  defaults=None,
-                                  disable_existing_loggers=False)
+        if os.path.isfile(filename):
+            logging.config.fileConfig(filename,
+                                      defaults=None,
+                                      disable_existing_loggers=False)
+            return True
+        return False
 
-    if log_config is None:
-        # No log file setting in config
-        log_config = os.path.join(app.instance_path, LOG_CONFIG_FILE_NAME)
-        if os.path.isfile(log_config):
-            print("Logging: Loading config from instance path ({!s})".format(
-                log_config))
-            _load_config_file(log_config)
+    if LOG_CONFIG_ENVIRON_NAME in os.environ:
+        # 1. From environment
+        env_config = os.environ[LOG_CONFIG_ENVIRON_NAME]
+        if _load_config_file(env_config):
+            print("Logging: Loading config from ${!s} ({!s})".format(
+                LOG_CONFIG_ENVIRON_NAME, env_config))
         else:
-            print("Logging: Using default log settings")
-            logging.config.dictConfig(DEFAULT_LOG_CONFIG)
-    else:
+            print("Logging: Ignoring config from ${!s} ({!s})".format(
+                LOG_CONFIG_ENVIRON_NAME, env_config))
+    elif log_config:
+        # 2. From config
         if not os.path.isabs(log_config):
             log_config = os.path.join(app.instance_path, log_config)
+        print("Logging: Loading config from LOG_CONFIG='{!s}'".format(
+            log_config))
         # Log file given in config
-        if os.path.isfile(log_config):
-            print("Logging: Loading config from LOG_CONFIG='{!s}'".format(
-                log_config))
-            _load_config_file(log_config)
-        else:
+        if not _load_config_file(log_config):
             raise RuntimeError(
                 "LOG_CONFIG '{!s}' doesn't exist".format(log_config))
+    else:
+        log_config = os.path.join(app.instance_path, LOG_CONFIG_FILE_NAME)
+        if _load_config_file(log_config):
+            # 3. From instance path
+            print("Logging: Loading config from instance path ({!s})".format(
+                log_config))
+        else:
+            # 4. Default
+            print("Logging: Using default log settings")
+            logging.config.dictConfig(DEFAULT_LOG_CONFIG)
 
     # Set default logger level based on app debug setting
     if app.logger.level == logging.NOTSET:

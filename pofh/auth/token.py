@@ -72,8 +72,8 @@ class JWTAuthToken(object):
 
         The new values are :py:func:`datetime.datetime.utcnow` + ``DEFAULT_*``.
         """
-        self.nbf = datetime.datetime.utcnow() + self.DEFAULT_NBF
-        self.exp = datetime.datetime.utcnow() + self.DEFAULT_EXP
+        self.nbf = datetime.utcnow() + self.DEFAULT_NBF
+        self.exp = datetime.utcnow() + self.DEFAULT_EXP
 
     def get_payload(self):
         """ Build a payload for this token.

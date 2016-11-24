@@ -55,8 +55,7 @@ def init_app(app):
         for code in _exc.default_exceptions:
             app.errorhandler(code)(handle_error)
 
-
-    @app.route('/renew', methods=['POST', ])
+    @app.route('/renew', methods=['GET', 'POST', ])
     @auth.require_jwt()
     def renew_session_jwt():
         """ Renew the current JSON Web Token.

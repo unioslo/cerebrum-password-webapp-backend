@@ -150,10 +150,8 @@ class MockClient(IdmClient):
     def __init__(self, data=None):
         self._db = {}
         if data is None:
-            print 'loading default'
             self.load_data(self._default_db)
         else:
-            print 'loading custom'
             self.load_data(data)
 
     _valid_passwords = ["hunter2", "password1", "fido5", "secret"]
@@ -175,7 +173,6 @@ class MockClient(IdmClient):
                                                     []).append(number)
             self._db["persons"][pid]["can_show_usernames"] = info.get(
                 "can_show_usernames", True)
-            print self._db["persons"][pid]
 
     def get_person(self, idtype, idvalue):
         if idvalue in self._db["persons"]:

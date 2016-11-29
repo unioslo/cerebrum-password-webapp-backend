@@ -50,8 +50,8 @@ from datetime import timedelta
 
 from .. import auth
 from ..auth.token import JWTAuthToken
-from ..idm import get_idm_client
-from ..sms import send_sms
+from ..idm import get_idm_client, IdmClientException
+from ..sms import send_sms, get_sms_dispatcher
 from ..recaptcha import require_recaptcha
 from ..template import add_template, get_localized_template
 from .utils import input_schema
@@ -85,7 +85,6 @@ class NotFoundError(ApiError):
 
 class ServiceUnavailable(ApiError):
     code = 403
-    error_type = 'reserved'
 
 
 class InvalidNonce(ApiError):
@@ -172,7 +171,7 @@ def identify(data):
         400: not found
         400: invalid number
         401: invalid recapthca
-        403: reserved
+        403: service-unavailable
 
     """
     client = get_idm_client()
@@ -184,17 +183,26 @@ def identify(data):
     # Check username
     if data["username"] not in client.get_usernames(person_id):
         raise NotFoundError()
-    if not client.can_use_sms_service(data["username"]):
-        # record stats?
-        raise ServiceUnavailable()
 
     # Check mobile number
-    # TODO: Use phonenumbers/dispatcher.parse to compare numbers?
-    #       That way, end users don't have to guess the internal formatting in
-    #       the IdM
-    if data["mobile"] not in client.get_mobile_numbers(person_id):
+    dispatcher = get_sms_dispatcher(current_app)
+    mobile = dispatcher.parse(data["mobile"])
+    valid_numbers = [dispatcher.parse(x)
+                     for x in client.get_mobile_numbers(
+                     person_id=person_id, username=data["username"])]
+
+    if mobile is None or mobile not in valid_numbers:
         # record stats?
         raise InvalidMobileNumber()
+
+    # Check for eligibility
+    try:
+        if not client.can_use_sms_service(person_id=person_id,
+                                          username=data["username"]):
+            # record stats?
+            raise ServiceUnavailable()
+    except IdmClientException, e:
+        raise ServiceUnavailable(details={'reason': str(e)})
 
     # Everything is OK, store and send nonce
     identifier = '{!s}:{!s}'.format(data["username"], data["mobile"])

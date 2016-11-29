@@ -9,8 +9,6 @@ import pytest
 import pofh
 import json
 
-from pofh.api.authenticate import BasicAuthError
-
 
 class DefaultConfig(pofh.DefaultConfig):
     """ New default config """
@@ -42,14 +40,20 @@ def test_authenticate(client):
     """ Test the /authenticate end point. """
 
     # TODO: Test recaptcha?
-    with pytest.raises(BasicAuthError):
-        client.post("/authenticate",
-                    data={'username': 'foo', 'password': 'bad'})
+
+    # Bad payload
     res = client.post("/authenticate",
-                      data={'username': 'foo', 'passord': 'bad'})
+                      data={'very': 'wrong'})
     assert res.status_code == 400
     res = json.loads(res.data)
     assert res['error'] == 'schema-error'
+    # Invalid credentials
+    res = client.post("/authenticate",
+                      data={'username': 'foo', 'password': 'bad'})
+    assert res.status_code == 401
+    res = json.loads(res.data)
+    assert res['error'] == 'invalid-creds'
+    # Valid credentials
     res = client.post("/authenticate",
                       data={'username': 'foo', 'password': 'hunter2'})
     assert res.status_code == 200
@@ -106,10 +110,10 @@ def test_smsidentify(client):
                                   'username': 'foobar',
                                   'mobile': '+4720000000'}),
         # user bar is reserved
-        (403, 'reserved', {'identifier_type': 'id',
-                           'identifier': '1',
-                           'username': 'bar',
-                           'mobile': '+4720000000'}),
+        (403, 'service-unavailable', {'identifier_type': 'id',
+                                      'identifier': '1',
+                                      'username': 'bar',
+                                      'mobile': '+4720000000'}),
         # number and person mismatch
         (400, 'invalid-mobile-number', {'identifier_type': 'id',
                                         'identifier': '1',
@@ -155,8 +159,14 @@ def test_smsverify(client):
 def test_listusers(client):
     """ Test the '/list-usernames' endpint. """
 
+    # Can list
     res = client.post('/list-usernames', data={'identifier_type': 'id',
                                                'identifier': '1'})
     assert res.status_code == 200
     users = set(json.loads(res.data).get('usernames', []))
     assert set(['foo', 'bar']) == users
+
+    # Cannot list
+    res = client.post('/list-usernames', data={'identifier_type': 'id',
+                                               'identifier': '2'})
+    assert res.status_code == 400

@@ -365,6 +365,8 @@ class CerebrumClient(client.IdmClient):
             raise IdmClientException('inactive-account')
         if self._account_is_quarantined(username):
             raise IdmClientException('quarantined')
+        if self._account_is_sysadm_account(username):
+            raise IdmClientException('reserved-sysadm-account')
         if any(self.is_reserved_group(name) for name
                in self._get_group_memberships(username)):
             raise IdmClientException('reserved-by-group-membership')
@@ -438,15 +440,19 @@ class CerebrumClient(client.IdmClient):
                 return True
         return False
 
+    def _account_is_sysadm_account(self, username):
+        """ Check if an account is used for system administration. """
+        traits = self._get_traits(username=username)
+        if any(trait.get('trait') == 'sysadm_account' for trait in traits):
+            return True
+        return False
+
     def _get_group_memberships(self, username):
         """ Fetch a list of groups a given user is member of. """
         key = self._make_key('groups', username)
         if key not in self._cache:
             groups = self._do_get(
-                self._ACCOUNT_GROUPS.format(username=username),
-                q={
-                    'indirect_memberships': True,
-                }
+                self._ACCOUNT_GROUPS.format(username=username)
             )
             memberships = [group['name'] for group in
                            groups.json().get('groups', [])]

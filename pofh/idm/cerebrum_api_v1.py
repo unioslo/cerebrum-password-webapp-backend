@@ -35,6 +35,11 @@ CEREBRUM_CONTACT_SETTINGS (:py:class:`list`)
             'delay': :py:class:`int`,
         }
 
+CEREBRUM_FRESH_DAYS (:py:class:`int`)
+    Used when considering if an entity is fresh. Maximum number of days since:
+        - person creation
+        - the date set in the account traits "new_student" and "sms_welcome"
+
 CEREBRUM_AFF_GRACE_DAYS (:py:class:`int`)
     The number of days to allow using contact information from a source system
     a person has recently lost its affiliation from. This is to let people
@@ -57,7 +62,7 @@ CEREBRUM_FRESH_DAYS (:py:class:`int`)
 
 CEREBRUM_ACCEPTED_QUARANTINES (:py:class:`list`)
     A list of quarantines an account can have and still be eligible for
-    authentication by SMS or credentials.
+    authentication by SMS.
 
 """
 from __future__ import absolute_import, unicode_literals

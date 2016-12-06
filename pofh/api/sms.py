@@ -190,9 +190,13 @@ def identify(data):
                      for x in client.get_mobile_numbers(
                      person_id=person_id, username=data["username"])]
 
-    if mobile is None or mobile not in valid_numbers:
+    if mobile is None:
         # record stats?
         raise InvalidMobileNumber()
+
+    if mobile not in valid_numbers:
+        # record stats?
+        raise NotFoundError()
 
     # Check for eligibility
     try:

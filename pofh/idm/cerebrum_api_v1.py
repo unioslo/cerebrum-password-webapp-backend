@@ -15,7 +15,7 @@ CEREBRUM_API_TIMEOUT (:py:class:`float`)
 
 CEREBRUM_RESERVED_GROUPS (:py:class:`list`)
     A list of groups that disqualifies use of the SMS reset service. Any
-    indirect member of any listed group will not be able to reset passwords
+    direct member of any listed group will not be able to reset passwords
     using the SMS service.
 
 CEREBRUM_CONTACT_SETTINGS (:py:class:`list`)
@@ -297,7 +297,7 @@ class CerebrumClient(client.IdmClient):
                 'external_id': identifier,
             }
         )
-        results = data.json().get("results", [])
+        results = data.json().get("external_ids", [])
         if not results:
             return None
         return results.pop(0)["person_id"]

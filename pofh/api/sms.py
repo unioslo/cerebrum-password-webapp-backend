@@ -89,6 +89,7 @@ class ServiceUnavailable(ApiError):
 
 class InvalidNonce(ApiError):
     code = 401
+    error_type = 'invalid-nonce'
 
 
 # default sms template

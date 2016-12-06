@@ -15,7 +15,7 @@ CEREBRUM_API_TIMEOUT (:py:class:`float`)
 
 CEREBRUM_RESERVED_GROUPS (:py:class:`list`)
     A list of groups that disqualifies use of the SMS reset service. Any
-    indirect member of any listed group will not be able to reset passwords
+    direct member of any listed group will not be able to reset passwords
     using the SMS service.
 
 CEREBRUM_CONTACT_SETTINGS (:py:class:`list`)
@@ -34,6 +34,11 @@ CEREBRUM_CONTACT_SETTINGS (:py:class:`list`)
             # Minimum days since changed, e.g. 7, 14
             'delay': :py:class:`int`,
         }
+
+CEREBRUM_FRESH_DAYS (:py:class:`int`)
+    Used when considering if an entity is fresh. Maximum number of days since:
+        - person creation
+        - the date set in the account traits "new_student" and "sms_welcome"
 
 CEREBRUM_AFF_GRACE_DAYS (:py:class:`int`)
     The number of days to allow using contact information from a source system
@@ -57,7 +62,7 @@ CEREBRUM_FRESH_DAYS (:py:class:`int`)
 
 CEREBRUM_ACCEPTED_QUARANTINES (:py:class:`list`)
     A list of quarantines an account can have and still be eligible for
-    authentication by SMS or credentials.
+    authentication by SMS.
 
 """
 from __future__ import absolute_import, unicode_literals
@@ -292,7 +297,7 @@ class CerebrumClient(client.IdmClient):
                 'external_id': identifier,
             }
         )
-        results = data.json().get("results", [])
+        results = data.json().get("external_ids", [])
         if not results:
             return None
         return results.pop(0)["person_id"]
@@ -360,6 +365,8 @@ class CerebrumClient(client.IdmClient):
             raise IdmClientException('inactive-account')
         if self._account_is_quarantined(username):
             raise IdmClientException('quarantined')
+        if self._account_is_sysadm_account(username):
+            raise IdmClientException('reserved-sysadm-account')
         if any(self.is_reserved_group(name) for name
                in self._get_group_memberships(username)):
             raise IdmClientException('reserved-by-group-membership')
@@ -433,15 +440,19 @@ class CerebrumClient(client.IdmClient):
                 return True
         return False
 
+    def _account_is_sysadm_account(self, username):
+        """ Check if an account is used for system administration. """
+        traits = self._get_traits(username=username)
+        if any(trait.get('trait') == 'sysadm_account' for trait in traits):
+            return True
+        return False
+
     def _get_group_memberships(self, username):
         """ Fetch a list of groups a given user is member of. """
         key = self._make_key('groups', username)
         if key not in self._cache:
             groups = self._do_get(
-                self._ACCOUNT_GROUPS.format(username=username),
-                q={
-                    'indirect_memberships': True,
-                }
+                self._ACCOUNT_GROUPS.format(username=username)
             )
             memberships = [group['name'] for group in
                            groups.json().get('groups', [])]

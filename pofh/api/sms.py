@@ -51,7 +51,7 @@ from datetime import timedelta
 from .. import auth
 from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client, IdmClientException
-from ..sms import send_sms, get_sms_dispatcher
+from ..sms import send_sms, parse_number
 from ..recaptcha import require_recaptcha
 from ..template import add_template, get_localized_template
 from .utils import input_schema
@@ -185,15 +185,18 @@ def identify(data):
         raise NotFoundError()
 
     # Check mobile number
-    dispatcher = get_sms_dispatcher(current_app)
-    mobile = dispatcher.parse(data["mobile"])
-    valid_numbers = [dispatcher.parse(x)
+    mobile = parse_number(data["mobile"])
+    valid_numbers = [parse_number(x)
                      for x in client.get_mobile_numbers(
                      person_id=person_id, username=data["username"])]
 
-    if mobile is None or mobile not in valid_numbers:
+    if mobile is None:
         # record stats?
         raise InvalidMobileNumber()
+
+    if mobile not in valid_numbers:
+        # record stats?
+        raise NotFoundError()
 
     # Check for eligibility
     try:
@@ -217,7 +220,7 @@ def identify(data):
         code=nonce,
         minutes=expire.total_seconds()//60)
     if not send_sms(data["mobile"], message):
-        return ("Unable to send SMS", 500)
+        raise ServiceUnavailable(details={'reason': 'cannot-send-sms'})
 
     # TODO: Re-use existing jti?
     token = JWTAuthToken.new(namespace=NS_VERIFY_NONCE,

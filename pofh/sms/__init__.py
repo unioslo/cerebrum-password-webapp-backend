@@ -60,6 +60,12 @@ def send_sms(number, message):
     return _dispatcher(number, message)
 
 
+def parse_number(number):
+    """ This will parse a phone number using the currently configured
+    dispatcher. """
+    return _dispatcher.parse(number)
+
+
 def get_sms_dispatcher(app):
     """ Fetch sms dispatcher from config.
 

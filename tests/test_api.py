@@ -100,44 +100,47 @@ def test_smsidentify(client):
 
     tests = [
         # identifier 42 does not exist
-        (400, 'not-found-error', {'identifier_type': 'id',
-                                  'identifier': '42',
-                                  'username': 'foo',
-                                  'mobile': '+4720000000'}),
+        (400, 'not-found-error', None,
+         {'identifier_type': 'id',
+          'identifier': '42',
+          'username': 'foo',
+          'mobile': '+4720000000'}),
         # username foobar does not exist
-        (400, 'not-found-error', {'identifier_type': 'id',
-                                  'identifier': '1',
-                                  'username': 'foobar',
-                                  'mobile': '+4720000000'}),
+        (400, 'not-found-error', None,
+         {'identifier_type': 'id',
+          'identifier': '1',
+          'username': 'foobar',
+          'mobile': '+4720000000'}),
         # user bar is reserved
-        (403, 'service-unavailable', {'identifier_type': 'id',
-                                      'identifier': '1',
-                                      'username': 'bar',
-                                      'mobile': '+4720000000'}),
+        (403, 'service-unavailable', None,
+         {'identifier_type': 'id',
+          'identifier': '1',
+          'username': 'bar',
+          'mobile': '+4720000000'}),
         # number and person mismatch
-        (400, 'invalid-mobile-number', {'identifier_type': 'id',
-                                        'identifier': '1',
-                                        'username': 'foo',
-                                        'mobile': '+4720000042'}),
-        # phonenumber lib does not accept number as valid
-        (500, 'Unable to send SMS', {'identifier_type': 'id',
-                                     'identifier': '1',
-                                     'username': 'foo',
-                                     'mobile': '+4720000000'}),
+        (400, 'invalid-mobile-number', None,
+         {'identifier_type': 'id',
+          'identifier': '1',
+          'username': 'foo',
+          'mobile': '+4720000042'}),
+        # gateway is unwilling to send sms
+        (403, 'service-unavailable', 'cannot-send-sms',
+         {'identifier_type': 'id',
+          'identifier': '1',
+          'username': 'foo',
+          'mobile': '+4720000000'}),
         # all ok (no real SMS sent)
-        (200, None, {'identifier_type': 'id',
-                     'identifier': '1',
-                     'username': 'foo',
-                     'mobile': '+4791000000'}),
+        (200, None, None,
+         {'identifier_type': 'id',
+          'identifier': '1',
+          'username': 'foo',
+          'mobile': '+4791000000'}),
     ]
-    for status, error, data in tests:
+    for status, error, reason, data in tests:
         res = client.post('/sms', data=data)
         assert res.status_code == status
-        # TODO: Fix identify() to return json?
-        if status != 500:
-            assert json.loads(res.data).get('error') == error
-        else:
-            assert res.data == error
+        assert json.loads(res.data).get('error') == error
+        assert json.loads(res.data).get('details', {}).get('reason') == reason
 
 
 def test_smsverify(client):

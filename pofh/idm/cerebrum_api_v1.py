@@ -327,10 +327,14 @@ class CerebrumClient(client.IdmClient):
         """ Look up account information by username. """
         key = self._make_key('account', username)
         if key not in self._cache:
-            data = self._do_get(
-                self._ACCOUNT_INFO.format(username=username)
-            )
-            self._cache[key] = data.json()
+            try:
+                data = self._do_get(
+                    self._ACCOUNT_INFO.format(username=username)
+                )
+                self._cache[key] = data.json()
+            except requests.exceptions.HTTPError, e:
+                if e.response.status_code == 404:
+                    return None
         return self._cache[key]
 
     def _person_is_fresh(self, person_id):
@@ -345,7 +349,10 @@ class CerebrumClient(client.IdmClient):
 
     def _account_is_active(self, username):
         """ Check if an account is considered active. """
-        return self._get_account_info(username).get('active', False)
+        account_info = self._get_account_info(username)
+        if account_info is None:
+            return False
+        return account_info.get('active', False)
 
     def _account_is_fresh(self, username):
         """ Check if an account is considered fresh. """

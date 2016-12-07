@@ -48,8 +48,9 @@ class ApiError(with_metaclass(ApiErrorType, Exception)):
         return '<ApiError [{:d}]: {!s}>'.format(self.code, self.error_type)
 
     def __repr__(self):
-        return "{!s}(details={!r})".format(
+        return "{!s}(code={!s}, details={!r})".format(
             self.__class__.__name__,
+            self.code,
             self.details)
 
     def get_response(self):
@@ -96,7 +97,7 @@ certain types). The exception itself is sent as a keyword argument,
 
 
 def _handle(error):
-    current_app.logger.debug("API error: {!s}".format(error))
+    current_app.logger.debug("API error: {!r}".format(error))
     signal_api_error.send(type(error), exception=error)
     return error.get_response()
 

@@ -122,9 +122,10 @@ def get_nonce_expire(app):
 
 def generate_nonce(length):
     """ Generate a nonce of a given length. """
-    # TODO: Mixed casing or longer length?
+    ambiguous = 'B8G6I1l0OQDS5Z2'
     alphanum = string.digits + string.ascii_letters
-    return ''.join(random.choice(alphanum) for n in range(length))
+    choices = [c for c in alphanum if c not in ambiguous]
+    return ''.join(random.choice(choices) for n in range(length))
 
 
 def save_nonce(identifier, nonce, duration):

@@ -76,7 +76,7 @@ def test_password(client, token):
                       data={'password': 'hunter3'})
     dta = json.loads(res.data)
     assert res.status_code == 400
-    assert dta['error'] == 'weak-password'
+    assert dta['error'] == 'invalid-new-password'
 
     res = client.post('/password', headers={'Authorization': token},
                       data={'passord': 'hunter3'})
@@ -118,17 +118,17 @@ def test_smsidentify(client):
           'username': 'bar',
           'mobile': '+4720000000'}),
         # number and person mismatch
-        (400, 'invalid-mobile-number', None,
+        (400, 'not-found-error', None,
          {'identifier_type': 'id',
           'identifier': '1',
           'username': 'foo',
           'mobile': '+4720000042'}),
-        # gateway is unwilling to send sms
-        (403, 'service-unavailable', 'cannot-send-sms',
+        # invalid mobile number
+        (400, 'invalid-mobile-number', 'unparseable-phone-number',
          {'identifier_type': 'id',
           'identifier': '1',
           'username': 'foo',
-          'mobile': '+4720000000'}),
+          'mobile': 'AAAAaaaaaaaaaaaaa'}),
         # all ok (no real SMS sent)
         (200, None, None,
          {'identifier_type': 'id',

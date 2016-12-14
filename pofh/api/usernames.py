@@ -75,7 +75,10 @@ def list_for_person(data):
         message = render_template(template, usernames="\n".join(usernames))
         recipient = client.get_preferred_mobile_number(person_id)
         if recipient:
-            send_sms(recipient, message)
+            try:
+                send_sms(recipient, message)
+            except:
+                pass
         raise NotFoundError()
 
     statsd.incr(USERNAME_METRIC_INIT)

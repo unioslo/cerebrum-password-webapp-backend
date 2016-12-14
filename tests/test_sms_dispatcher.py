@@ -33,27 +33,35 @@ def abstract():
 
 
 def test_filter_valid_number(abstract, valid_number):
-    assert abstract.filter(valid_number) is False
+    assert abstract.filter(valid_number) is None
 
 
 def test_filter_invalid_number(abstract, invalid_number):
-    assert abstract.filter(invalid_number) is True
+    with pytest.raises(dispatcher.FilterException) as exc:
+        abstract.filter(invalid_number)
+    assert str(exc.value) == 'invalid-phone-number'
 
 
 def test_whitelist_region(abstract, valid_number):
     abstract.whitelist_regions = True
-    assert abstract.filter(valid_number) is True
+    with pytest.raises(dispatcher.FilterException) as exc:
+        abstract.filter(valid_number)
+    assert str(exc.value) == 'invalid-region'
     abstract.add_region("SE")
-    assert abstract.filter(valid_number) is True
+    with pytest.raises(dispatcher.FilterException) as exc:
+        abstract.filter(valid_number)
+    assert str(exc.value) == 'invalid-region'
     abstract.add_region("NO")
-    assert abstract.filter(valid_number) is False
+    assert abstract.filter(valid_number) is None
 
 
 def test_whitelist_number(abstract, valid_number):
     abstract.whitelist_numbers = True
-    assert abstract.filter(valid_number) is True
+    with pytest.raises(dispatcher.FilterException) as exc:
+        abstract.filter(valid_number)
+    assert str(exc.value) == 'not-whitelisted'
     abstract.add_number(fmt(valid_number))
-    assert abstract.filter(valid_number) is False
+    assert abstract.filter(valid_number) is None
 
 
 @pytest.fixture
@@ -88,6 +96,7 @@ def test_signal_filter(mock, catcher, invalid_number):
     assert filtered.caught[0].args['raw_number'] == fmt(invalid_number)
     assert filtered.caught[0].args['number'] == invalid_number
     assert filtered.caught[0].args['message'] == 'foo'
+    assert filtered.caught[0].args['reason'] == 'invalid-phone-number'
 
 
 def test_signal_sent(mock, catcher, valid_number):

@@ -22,7 +22,12 @@ from __future__ import absolute_import, unicode_literals
 import requests
 import phonenumbers
 from flask import current_app
-from . import dispatcher
+from .dispatcher import SmsDispatcher
+
+
+class SmsResponseError(ValueError):
+    """ There was an error with the gateway response. """
+    pass
 
 
 def from_config(config):
@@ -71,16 +76,16 @@ def validate_response(response):
         # msg_id, status, to, timestamp, message
         msg_id, status, to, _, _ = metadata.split('¤', 4)
     except ValueError:
-        raise dispatcher.SmsResponseError(
+        raise SmsResponseError(
             "Bad response from server: {!s}".format(metadata))
 
     if status != 'SENDES':
-        raise dispatcher.SmsResponseError(
+        raise SmsResponseError(
             "Bad status from server: {!s} ({!s})".format(
                 status, metadata))
 
 
-class UioGatewayDispatcher(dispatcher.SmsDispatcher):
+class UioGatewayDispatcher(SmsDispatcher):
     """ For lack of a better name. """
 
     def __init__(self, url, system, user, password, timeout):

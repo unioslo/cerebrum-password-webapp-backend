@@ -332,7 +332,7 @@ class CerebrumClient(client.IdmClient):
                     self._ACCOUNT_INFO.format(username=username)
                 )
                 self._cache[key] = data.json()
-            except requests.exceptions.HTTPError, e:
+            except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 404:
                     return None
         return self._cache[key]
@@ -533,31 +533,43 @@ class CerebrumClient(client.IdmClient):
 
     def verify_current_password(self, username, password):
         """ Check if a set of credentials are valid for authentication. """
-        result = self._do_post(
-            self._PASSWORD_VERIFY.format(username=username),
-            d={
-                'password': password,
-            }
-        )
+        try:
+            result = self._do_post(
+                self._PASSWORD_VERIFY.format(username=username),
+                d={
+                    'password': password,
+                }
+            )
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 400:
+                return False
         return result.json().get('verified', False)
 
     def check_new_password(self, username, password):
         """ Check if a set of credentials validates against the password
         rules. """
-        result = self._do_post(
-            self._PASSWORD_CHECK.format(username=username),
-            d={
-                'password': password,
-            }
-        )
+        try:
+            result = self._do_post(
+                self._PASSWORD_CHECK.format(username=username),
+                d={
+                    'password': password,
+                }
+            )
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 400:
+                return False
         return result.json().get('passed', False)
 
     def set_new_password(self, username, password):
         """ Change the password for a user. """
-        result = self._do_post(
-            self._PASSWORD_SET.format(username=username),
-            d={
-                'password': password,
-            }
-        )
+        try:
+            result = self._do_post(
+                self._PASSWORD_SET.format(username=username),
+                d={
+                    'password': password,
+                }
+            )
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 400:
+                return False
         return bool(result.json().get('password', False))

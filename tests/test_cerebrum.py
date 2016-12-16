@@ -84,11 +84,11 @@ def test_get_person(client, data):
     """ Test get_person. """
     client.add_person_id_type('id')
     data.get(client._build_url(client._PERSON_LOOKUP),
-             text=json.dumps({'results': [{'person_id': 42}]}))
+             text=json.dumps({'external_ids': [{'person_id': 42}]}))
     assert client.get_person('id', 42) == 42
     assert client.get_person('invalidType', 42) == None
     data.get(client._build_url(client._PERSON_LOOKUP),
-             text=json.dumps({'results': []}))
+             text=json.dumps({'external_ids': []}))
     assert client.get_person('id', 123) == None
 
 

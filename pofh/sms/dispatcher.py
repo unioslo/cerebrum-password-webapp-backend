@@ -6,6 +6,10 @@ import blinker
 import phonenumbers
 
 
+class FilterException(Exception):
+    pass
+
+
 class SmsDispatcher(object):
     """ Abstract SMS Dispatcher. """
 
@@ -102,17 +106,16 @@ class SmsDispatcher(object):
         """
         if number is None:
             # Unparseable phone number
-            return True
+            raise FilterException('unparseable-phone-number')
         if not phonenumbers.is_valid_number(number):
             # Invalid phone number
-            return True
+            raise FilterException('invalid-phone-number')
         if not self.check_region(number):
             # Non-whitelisted country code
-            return True
+            raise FilterException('invalid-region')
         if not self.check_number(number):
             # Non-whitelisted number
-            return True
-        return False
+            raise FilterException('not-whitelisted')
 
     def __call__(self, raw_number, message, **kwargs):
         """ Send SMS message.
@@ -133,11 +136,14 @@ class SmsDispatcher(object):
 
         # Transform and filter
         number = self.parse(raw_number)
-        if self.filter(number):
+        try:
+            self.filter(number)
+        except FilterException as e:
             self.signal_sms_filtered.send(self,
                                           raw_number=raw_number,
                                           number=number,
-                                          message=message)
+                                          message=message,
+                                          reason=str(e))
             return False
 
         # Try to send

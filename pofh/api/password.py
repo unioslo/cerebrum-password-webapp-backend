@@ -39,7 +39,6 @@ class ResetPasswordSchema(Schema):
 
 class InvalidNewPassword(ApiError):
     code = 400
-    error_type = 'weak-password'
 
 
 def create_password_token(username):

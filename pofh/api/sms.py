@@ -51,7 +51,8 @@ from datetime import timedelta
 from .. import auth
 from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client, IdmClientException
-from ..sms import send_sms, parse_number
+from ..sms import send_sms, parse_number, filter_number
+from ..sms.dispatcher import FilterException
 from ..recaptcha import require_recaptcha
 from ..template import add_template, get_localized_template
 from .utils import input_schema
@@ -194,7 +195,8 @@ def identify(data):
 
     if mobile is None:
         # record stats?
-        raise InvalidMobileNumber()
+        raise InvalidMobileNumber(
+            details={'reason': 'unparseable-phone-number'})
 
     if mobile not in valid_numbers:
         # record stats?
@@ -206,8 +208,14 @@ def identify(data):
                                           username=data["username"]):
             # record stats?
             raise ServiceUnavailable()
-    except IdmClientException, e:
+    except IdmClientException as e:
         raise ServiceUnavailable(details={'reason': str(e)})
+
+    # Check if mobile number will be filtered
+    try:
+        filter_number(mobile)
+    except FilterException as e:
+        raise InvalidMobileNumber(details={'reason': str(e)})
 
     # Everything is OK, store and send nonce
     identifier = '{!s}:{!s}'.format(data["username"], data["mobile"])

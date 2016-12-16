@@ -66,6 +66,12 @@ def parse_number(number):
     return _dispatcher.parse(number)
 
 
+def filter_number(number):
+    """ This will send a phone number through the filter using the currently
+    configured dispatcher. """
+    _dispatcher.filter(number)
+
+
 def get_sms_dispatcher(app):
     """ Fetch sms dispatcher from config.
 

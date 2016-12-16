@@ -327,10 +327,14 @@ class CerebrumClient(client.IdmClient):
         """ Look up account information by username. """
         key = self._make_key('account', username)
         if key not in self._cache:
-            data = self._do_get(
-                self._ACCOUNT_INFO.format(username=username)
-            )
-            self._cache[key] = data.json()
+            try:
+                data = self._do_get(
+                    self._ACCOUNT_INFO.format(username=username)
+                )
+                self._cache[key] = data.json()
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 404:
+                    return None
         return self._cache[key]
 
     def _person_is_fresh(self, person_id):
@@ -345,7 +349,10 @@ class CerebrumClient(client.IdmClient):
 
     def _account_is_active(self, username):
         """ Check if an account is considered active. """
-        return self._get_account_info(username).get('active', False)
+        account_info = self._get_account_info(username)
+        if account_info is None:
+            return False
+        return account_info.get('active', False)
 
     def _account_is_fresh(self, username):
         """ Check if an account is considered fresh. """
@@ -526,31 +533,43 @@ class CerebrumClient(client.IdmClient):
 
     def verify_current_password(self, username, password):
         """ Check if a set of credentials are valid for authentication. """
-        result = self._do_post(
-            self._PASSWORD_VERIFY.format(username=username),
-            d={
-                'password': password,
-            }
-        )
+        try:
+            result = self._do_post(
+                self._PASSWORD_VERIFY.format(username=username),
+                d={
+                    'password': password,
+                }
+            )
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 400:
+                return False
         return result.json().get('verified', False)
 
     def check_new_password(self, username, password):
         """ Check if a set of credentials validates against the password
         rules. """
-        result = self._do_post(
-            self._PASSWORD_CHECK.format(username=username),
-            d={
-                'password': password,
-            }
-        )
+        try:
+            result = self._do_post(
+                self._PASSWORD_CHECK.format(username=username),
+                d={
+                    'password': password,
+                }
+            )
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 400:
+                return False
         return result.json().get('passed', False)
 
     def set_new_password(self, username, password):
         """ Change the password for a user. """
-        result = self._do_post(
-            self._PASSWORD_SET.format(username=username),
-            d={
-                'password': password,
-            }
-        )
+        try:
+            result = self._do_post(
+                self._PASSWORD_SET.format(username=username),
+                d={
+                    'password': password,
+                }
+            )
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 400:
+                return False
         return bool(result.json().get('password', False))

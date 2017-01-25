@@ -4,31 +4,28 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile-app
+      dockerfile: docker-files/Dockerfile-app
     networks:
-      - mediaplay
+      - password-app-network
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:8000"
     volumes:
       - .:/usr/src/app
-    working_dir: /usr/src/app
+    working_dir: /tmp
     depends_on:
       - db
-    command: python runserver.py
+    command: gunicorn --bind 0.0.0.0:8000 pofh:wsgi
 
   db:
     restart: always
     build:
       context: .
-      dockerfile: Dockerfile-db
+      dockerfile: docker-files/Dockerfile-db
     networks:
-      - mediaplay
-    volumes:
-      - ./db/main:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      - password-app-network
+    ports:
+      - "127.0.0.1:6379:6379"
 
 networks:
-  mediaplay:
+  password-app-network:
     driver: bridge

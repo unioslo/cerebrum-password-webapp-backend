@@ -9,6 +9,7 @@ from __future__ import print_function, unicode_literals, absolute_import
 import os
 from flask import app as flask_app_module
 from flask_cors import CORS
+from werkzeug.contrib.fixers import ProxyFix
 import logging
 import logging.config
 
@@ -212,6 +213,9 @@ class WsgiApp(object):
             __name__,
             static_folder=None,
             instance_relative_config=True)
+
+        app.wsgi_app = ProxyFix(app.wsgi_app)
+
 
         init_config(app, config)
         init_logging(app)

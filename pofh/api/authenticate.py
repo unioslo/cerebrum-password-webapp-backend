@@ -16,6 +16,7 @@ from ..recaptcha import require_recaptcha
 from .utils import input_schema
 from ..apierror import ApiError
 from .password import create_password_token
+from .utils import route_value_validator, not_empty_validator
 
 
 API = Blueprint('authenticate', __name__)
@@ -23,8 +24,12 @@ API = Blueprint('authenticate', __name__)
 
 class BasicAuthSchema(Schema):
     """ Basic auth form. """
-    username = fields.String(required=True, allow_none=False)
-    password = fields.String(required=True, allow_none=False)
+    username = fields.String(required=True,
+                             allow_none=False,
+                             validate=route_value_validator)
+    password = fields.String(required=True,
+                             allow_none=False,
+                             validate=not_empty_validator)
 
 
 class BasicAuthError(ApiError):

@@ -29,6 +29,14 @@ class SchemaError(apierror.ApiError):
     code = 400
 
 
+def route_value_validator(val):
+    return val != '' and '/' not in val
+
+
+def not_empty_validator(val):
+    return val != ''
+
+
 def validate_schema(schema_type):
     """ automatically validate schema. """
     schema = schema_type()

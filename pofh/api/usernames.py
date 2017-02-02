@@ -17,7 +17,7 @@ from ..recaptcha import require_recaptcha
 from ..template import add_template, get_localized_template
 from ..sms import send_sms
 from ..stats import statsd
-from .utils import input_schema
+from .utils import input_schema, not_empty_validator
 from ..apierror import ApiError
 
 
@@ -27,8 +27,12 @@ USERNAME_METRIC_INIT = "kpi.username.init"
 
 class IdentitySchema(Schema):
     """ Person identity form. """
-    identifier_type = fields.String(required=True, allow_none=True)
-    identifier = fields.String(required=True, allow_none=False)
+    identifier_type = fields.String(required=True,
+                                    allow_none=True,
+                                    validate=not_empty_validator)
+    identifier = fields.String(required=True,
+                               allow_none=False,
+                               validate=not_empty_validator())
 
 
 class NotFoundError(ApiError):

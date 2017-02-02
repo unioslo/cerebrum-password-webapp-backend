@@ -17,7 +17,7 @@ from ..stats import statsd
 from ..auth.token import JWTAuthToken
 from ..idm import get_idm_client
 from ..apierror import ApiError
-from .utils import input_schema
+from .utils import input_schema, not_empty_validator
 
 
 API = Blueprint('password', __name__)
@@ -34,7 +34,9 @@ signal_password_changed = blinker.signal('pofh.api.password.password-changed')
 
 class ResetPasswordSchema(Schema):
     """ Set new password schema. """
-    password = fields.String(required=True, allow_none=False)
+    password = fields.String(required=True,
+                             allow_none=False,
+                             validate=not_empty_validator)
 
 
 class InvalidNewPassword(ApiError):

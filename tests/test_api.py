@@ -47,6 +47,27 @@ def test_authenticate(client):
     assert res.status_code == 400
     res = json.loads(res.data)
     assert res['error'] == 'schema-error'
+
+    # Do not allow empty values in payload
+    res = client.post("/authenticate",
+                      data={'username': '', 'password': 'foo'})
+    assert res.status_code == 400
+    res = json.loads(res.data)
+    assert res['error'] == 'schema-error'
+
+    res = client.post("/authenticate",
+                      data={'username': 'foo', 'password': ''})
+    assert res.status_code == 400
+    res = json.loads(res.data)
+    assert res['error'] == 'schema-error'
+
+    # Do not allow slashes in username
+    res = client.post("/authenticate",
+                      data={'username': '/', 'password': 'foo'})
+    assert res.status_code == 400
+    res = json.loads(res.data)
+    assert res['error'] == 'schema-error'
+
     # Invalid credentials
     res = client.post("/authenticate",
                       data={'username': 'foo', 'password': 'bad'})
@@ -84,6 +105,12 @@ def test_password(client, token):
     assert res.status_code == 400
     assert dta['error'] == 'schema-error'
 
+    res = client.post('/password', headers={'Authorization': token},
+                      data={'password': ''})
+    dta = json.loads(res.data)
+    assert res.status_code == 400
+    assert dta['error'] == 'schema-error'
+
     res = client.post('/password', headers={'Authorization': 'JWT missing'},
                       data={'passord': 'hunter3'})
     dta = json.loads(res.data)
@@ -109,6 +136,24 @@ def test_smsidentify(client):
         (400, 'not-found-error', None,
          {'identifier_type': 'id',
           'identifier': '1',
+          'username': 'foobar',
+          'mobile': '+4720000000'}),
+        # Do not allow empty username-field
+        (400, 'schema-error', None,
+         {'identifier_type': 'id',
+          'identifier': '1',
+          'username': '',
+          'mobile': '+4720000000'}),
+        # Do not allow slashes in username-field
+        (400, 'schema-error', None,
+         {'identifier_type': 'id',
+          'identifier': '1',
+          'username': 'foo/bar',
+          'mobile': '+4720000000'}),
+        # Do not allow empty identifier-field
+        (400, 'schema-error', None,
+         {'identifier_type': 'id',
+          'identifier': '',
           'username': 'foobar',
           'mobile': '+4720000000'}),
         # user bar is reserved

@@ -55,7 +55,7 @@ from ..sms import send_sms, parse_number, filter_number
 from ..sms.dispatcher import FilterException
 from ..recaptcha import require_recaptcha
 from ..template import add_template, get_localized_template
-from .utils import input_schema
+from .utils import input_schema, route_value_validator, not_empty_validator
 from ..apierror import ApiError
 from ..redisclient import store
 from ..stats import statsd
@@ -100,10 +100,18 @@ add_template('sms-code',
 
 class SmsIdentitySchema(Schema):
     """ Verify identity schema. """
-    identifier_type = fields.String(required=False, allow_none=False)
-    identifier = fields.String(required=True, allow_none=False)
-    username = fields.String(required=True, allow_none=False)
-    mobile = fields.String(required=True, allow_none=False)
+    identifier_type = fields.String(required=False,
+                                    allow_none=False,
+                                    validate=not_empty_validator)
+    identifier = fields.String(required=True,
+                               allow_none=False,
+                               validate=not_empty_validator)
+    username = fields.String(required=True,
+                             allow_none=False,
+                             validate=route_value_validator)
+    mobile = fields.String(required=True,
+                           allow_none=False,
+                           validate=not_empty_validator)
 
 
 class NonceSchema(Schema):

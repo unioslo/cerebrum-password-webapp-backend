@@ -241,6 +241,13 @@ class WsgiApp(object):
 
         api.init_app(app)
 
+        # Add cache headers to all responses
+        @app.after_request
+        def set_cache_headers(response):
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Cache-Control'] = 'no-cache'
+            return response
+
         return app
 
     @property

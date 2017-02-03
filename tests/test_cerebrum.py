@@ -327,5 +327,4 @@ def test_set_new_password(client, data):
         client._build_url(client._PASSWORD_SET.format(username='quux')),
         status_code=400, reason='Bad password: not good enough')
     assert client.set_new_password('foobar', 'secret') is True
-    with pytest.raises(requests.HTTPError):
-        client.set_new_password('quux', 'secret')
+    assert client.set_new_password('quux', 'secret') is False

@@ -32,7 +32,7 @@ class IdentitySchema(Schema):
                                     validate=not_empty_validator)
     identifier = fields.String(required=True,
                                allow_none=False,
-                               validate=not_empty_validator())
+                               validate=not_empty_validator)
 
 
 class NotFoundError(ApiError):

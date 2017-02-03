@@ -10,45 +10,42 @@ Settings
 
      * mock://
      * redis://:password@localhost:6379/0
+     * redis+sentinel://:password@localhost:26379/mymaster/0
      * unix://:password@/path/to/socket.sock?db=0
 
 """
 from __future__ import unicode_literals, absolute_import
 
-from flask_redis import FlaskRedis
-from werkzeug.local import LocalProxy
+from flask_redis_sentinel import SentinelExtension
 
 
-class RedisFactory(object):
-    """ Simple FlaskRedis factory.
+class RedisProvider(object):
+    def __init__(self, app=None, client_class=None, **kwargs):
+        self._client_class = client_class
+        self._client = None
+        self._sentinel = None
 
-    This allows us to set up FlaskRedis as a localproxy, and replace the
-    default FlaskRedis provider with a mock provider.
-    """
+        if app is not None:
+            self.init_app(app)
 
-    def __init__(self, provider):
-        self._provider = provider
-        self._obj = None
+    def init_app(self, app, **kwargs):
+        self._sentinel = SentinelExtension(app,
+                                           client_class=self._client_class)
+        self._client = self._sentinel.default_connection
 
-    def __call__(self):
-        if self._obj is None:
-            if issubclass(self._provider, FlaskRedis):
-                self._obj = self._provider()
-            else:
-                self._obj = FlaskRedis.from_custom_provider(self._provider)
-        return self._obj
+    def __getattr__(self, name):
+        return getattr(self._client, name)
 
-    def set_provider(self, provider):
-        self._provider = provider
-        self._obj = None
+    def __getitem__(self, name):
+        return self._client[name]
 
-factory = RedisFactory(FlaskRedis)
+    def __setitem__(self, name, value):
+        self._client[name] = value
 
+    def __delitem__(self, name):
+        del self._client[name]
 
-# Note: FlaskRedis doesn't need a LocalProxy, but this allows us to import
-# the `store` name from this module before `init_app`, and use the modified
-# object after `init_app` has been called.
-store = LocalProxy(factory)
+store = RedisProvider()
 """ The redis store."""
 
 
@@ -87,8 +84,6 @@ def init_debug(app):
 
 def init_app(app):
     """ Configure the redis provider and connection params. """
-    global _factory
-
     app.config.setdefault('REDIS_URL', "redis://localhost:6379/0")
 
     if not app.config['REDIS_URL']:
@@ -101,8 +96,11 @@ def init_app(app):
             @classmethod
             def from_url(cls, *args, **kwargs):
                 return cls(strict=True)
-
-        factory.set_provider(MockRedis)
+        # Trick the URL parser
+        app.config['REDIS_URL'] = app.config['REDIS_URL'].replace('mock://',
+                                                                  'redis://')
+        app.config['REDIS_CLASS'] = MockRedis
+        app.logger.debug('Using a mock Redis client')
 
     store.init_app(app)
 

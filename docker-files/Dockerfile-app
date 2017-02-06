@@ -1,0 +1,10 @@
+FROM python:2.7.12
+RUN useradd -ms /bin/bash uwsgi
+COPY . /usr/src/app
+COPY docker-files/app-instance/pofh.cfg /usr/local/var/pofh-instance/pofh.cfg
+COPY doc/source/modules/example.idm_mock_data.json /usr/local/var/pofh-instance/example.idm_mock_data.json
+RUN pip install /usr/src/app/.
+RUN chmod -R a+rx /usr/local/lib/python2.7/site-packages/pofh*
+RUN chown -R uwsgi /usr/src/app
+RUN chown -R uwsgi /usr/local/var/pofh-instance/*
+USER uwsgi

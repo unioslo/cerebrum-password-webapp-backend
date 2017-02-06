@@ -77,8 +77,9 @@ in an environment where ``pofh``, ``sphinx`` and ``sphinxcontrib-httpdomain`` ha
 
 Try it out with Docker
 ----------------------
-TODO: Update the docker files and write documentation.
+Start the database and pofh: ::
 
+    $ docker-compose up
 
 Configuration
 =============

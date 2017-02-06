@@ -16,22 +16,23 @@ Settings
 """
 from __future__ import unicode_literals, absolute_import
 
+from werkzeug.local import LocalProxy
 from flask_redis_sentinel import SentinelExtension
 
 
 class RedisProvider(object):
-    def __init__(self, app=None, client_class=None, **kwargs):
-        self._client_class = client_class
-        self._client = None
+    def __init__(self, app=None, **kwargs):
         self._sentinel = None
 
         if app is not None:
             self.init_app(app)
 
     def init_app(self, app, **kwargs):
-        self._sentinel = SentinelExtension(app,
-                                           client_class=self._client_class)
-        self._client = self._sentinel.default_connection
+        self._sentinel = SentinelExtension(app)
+
+    @property
+    def _client(self):
+        return self._sentinel.default_connection
 
     def __getattr__(self, name):
         return getattr(self._client, name)
@@ -45,7 +46,20 @@ class RedisProvider(object):
     def __delitem__(self, name):
         del self._client[name]
 
-store = RedisProvider()
+
+class RedisFactory(object):
+    def __init__(self, provider):
+        self._provider = provider
+        self._obj = None
+
+    def __call__(self):
+        if self._obj is None:
+            self._obj = self._provider()
+        return self._obj
+
+factory = RedisFactory(RedisProvider)
+
+store = LocalProxy(factory)
 """ The redis store."""
 
 

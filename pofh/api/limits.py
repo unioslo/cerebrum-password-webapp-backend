@@ -12,12 +12,65 @@ from .. import apierror
 
 
 def get_limiter(app):
-    if ('REDIS_URL' in app.config and
-            any(map(lambda x: app.config['REDIS_URL'].startswith(x),
-                    ['redis://', 'redis+sentinel://', 'redis+cluster://']))):
-        redis_url = app.config['REDIS_URL']
-    else:
-        redis_url = None
+    from limits.storage import RedisInteractor, Storage
+
+    class redisclient_storage(RedisInteractor, Storage):
+        """ Storage backend for flask-limiters backend (limiter).
+
+        This is essentially a copy of limiter.storage.RedisStorage, if we
+        disregard the usage of ..redisclient and the merging of
+        initialize_storage and __init__.
+
+        However, this is not a verbatim copy, as we'd rarther refer to
+        RedisInteractor instead of self/RedisClient.
+        """
+        STORAGE_SCHEME = "rcs"
+
+        def __init__(self, *args, **kwargs):
+            from ..redisclient import store
+            self.storage = store
+
+            self.lua_moving_window = self.storage.register_script(
+                RedisInteractor.SCRIPT_MOVING_WINDOW
+            )
+            self.lua_acquire_window = self.storage.register_script(
+                RedisInteractor.SCRIPT_ACQUIRE_MOVING_WINDOW
+            )
+            self.lua_clear_keys = self.storage.register_script(
+                RedisInteractor.SCRIPT_CLEAR_KEYS
+            )
+            self.lua_incr_expire = self.storage.register_script(
+                RedisInteractor.SCRIPT_INCR_EXPIRE
+            )
+
+        def incr(self, key, expiry, elastic_expiry=False):
+            if elastic_expiry:
+                return super(redisclient_storage, self).incr(
+                    key, expiry, self.storage, elastic_expiry
+                )
+            else:
+                return self.lua_incr_expire([key], [expiry])
+
+        def get(self, key):
+            return super(redisclient_storage, self).get(key, self.storage)
+
+        def acquire_entry(self, key, limit, expiry, no_add=False):
+            return super(redisclient_storage, self).acquire_entry(
+                key, limit, expiry, self.storage, no_add=no_add
+            )
+
+        def get_expiry(self, key):
+            return super(redisclient_storage, self).get_expiry(key,
+                                                               self.storage)
+
+        def check(self):
+            return super(redisclient_storage, self).check(self.storage)
+
+        def reset(self):
+            cleared = self.lua_clear_keys(['LIMITER*'])
+            return cleared
+
+    redis_url = "rcs://"
 
     limiter = Limiter(
         app,

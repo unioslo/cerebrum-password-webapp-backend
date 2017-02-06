@@ -81,4 +81,5 @@ def init_api(app):
     app.register_blueprint(API)
 
     limiter = get_limiter(app)
-    limiter.limit('10/minute', error_message='rate-limit-error')(authenticate)
+
+    limiter.limit('10/minute')(authenticate)

@@ -2,7 +2,7 @@
 """ Accessory functions for rate limiting. """
 from __future__ import unicode_literals, absolute_import
 
-from functools import wraps
+import functools
 
 from flask import request
 from flask_limiter import Limiter
@@ -78,6 +78,12 @@ def get_limiter(app):
         storage_uri=redis_url)
     for handler in app.logger.handlers:
         limiter.logger.addHandler(handler)
+
+    def e():
+        raise RateLimitError
+
+    limiter.limit = functools.partial(limiter.limit, error_message=e)
+
     return limiter
 
 
@@ -97,7 +103,7 @@ def exponential_ratelimit():
     Returns the wrapped function, or raises RateLimitError.
     """
     def w(func):
-        @wraps(func)
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             from ..redisclient import store
             scope = "{}{}".format(RATE_LIMIT_PREFIX, request.remote_addr)

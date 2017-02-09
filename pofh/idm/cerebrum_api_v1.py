@@ -73,6 +73,16 @@ import dateutil.parser
 from flask import g
 from . import client, IdmClientException
 
+try:
+    from urllib.parse import quote as urllib_quote
+except ImportError:
+    # PY2
+    from urllib import quote as urllib_quote
+
+
+def encode_username(username):
+    return urllib_quote(username, safe='')
+
 
 class ContactType(object):
     def __init__(self, system, ctype, delay=None):
@@ -329,8 +339,8 @@ class CerebrumClient(client.IdmClient):
         if key not in self._cache:
             try:
                 data = self._do_get(
-                    self._ACCOUNT_INFO.format(username=username)
-                )
+                    self._ACCOUNT_INFO.format(
+                        username=encode_username(username)))
                 self._cache[key] = data.json()
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 404:
@@ -391,8 +401,8 @@ class CerebrumClient(client.IdmClient):
         key = self._make_key('traits', username)
         if key not in self._cache:
             data = self._do_get(
-                self._ACCOUNT_TRAITS.format(username=username)
-            )
+                self._ACCOUNT_TRAITS.format(
+                    username=encode_username(username)))
             self._cache[key] = data.json().get('traits', [])
         return self._cache[key]
 
@@ -411,8 +421,8 @@ class CerebrumClient(client.IdmClient):
         key = self._make_key('quarantine-status', username)
         if key not in self._cache:
             data = self._do_get(
-                self._ACCOUNT_QUARANTINES.format(username=username)
-            )
+                self._ACCOUNT_QUARANTINES.format(
+                    username=encode_username(username)))
             self._cache[key] = data.json()
         return self._cache[key]
 
@@ -459,8 +469,8 @@ class CerebrumClient(client.IdmClient):
         key = self._make_key('groups', username)
         if key not in self._cache:
             groups = self._do_get(
-                self._ACCOUNT_GROUPS.format(username=username)
-            )
+                self._ACCOUNT_GROUPS.format(
+                    username=encode_username(username)))
             memberships = [group['name'] for group in
                            groups.json().get('groups', [])]
             self._cache[key] = memberships
@@ -535,7 +545,8 @@ class CerebrumClient(client.IdmClient):
         """ Check if a set of credentials are valid for authentication. """
         try:
             result = self._do_post(
-                self._PASSWORD_VERIFY.format(username=username),
+                self._PASSWORD_VERIFY.format(
+                    username=encode_username(username)),
                 d={
                     'password': password,
                 }
@@ -550,7 +561,8 @@ class CerebrumClient(client.IdmClient):
         rules. """
         try:
             result = self._do_post(
-                self._PASSWORD_CHECK.format(username=username),
+                self._PASSWORD_CHECK.format(
+                    username=encode_username(username)),
                 d={
                     'password': password,
                 }
@@ -564,7 +576,8 @@ class CerebrumClient(client.IdmClient):
         """ Change the password for a user. """
         try:
             result = self._do_post(
-                self._PASSWORD_SET.format(username=username),
+                self._PASSWORD_SET.format(
+                    username=encode_username(username)),
                 d={
                     'password': password,
                 }

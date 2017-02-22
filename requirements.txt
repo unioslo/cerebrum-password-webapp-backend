@@ -18,3 +18,4 @@ mockredispy
 statsd >= 3.0
 python-dateutil
 gunicorn
+pyyaml

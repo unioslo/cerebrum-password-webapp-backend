@@ -100,7 +100,7 @@ def get_limiter(app):
     return limiter
 
 
-RATE_LIMIT_PREFIX = 'rate-limit:'
+RATE_LIMIT_PREFIX = 'rate-limit'
 
 
 class RateLimitError(apierror.ApiError):
@@ -119,7 +119,9 @@ def exponential_ratelimit():
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             from ..redisclient import store
-            scope = "{}{}".format(RATE_LIMIT_PREFIX, request.remote_addr)
+            scope = "{}:{}:{}".format(RATE_LIMIT_PREFIX,
+                                      func.__name__,
+                                      request.remote_addr)
             state = store.get(scope)
             ok = False
             if not state:

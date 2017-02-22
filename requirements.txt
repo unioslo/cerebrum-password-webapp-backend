@@ -12,7 +12,7 @@ phonenumbers
 language_tags
 jinja2
 redis
-flask-redis
+flask-redis-sentinel
 mockredispy
 statsd >= 3.0
 python-dateutil

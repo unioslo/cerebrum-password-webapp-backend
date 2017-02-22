@@ -27,22 +27,30 @@ def get_limiter(app):
         STORAGE_SCHEME = "rcs"
 
         def __init__(self, *args, **kwargs):
-            from ..redisclient import store
-            self.storage = store
+            self.storage = None
 
-            self.lua_moving_window = self.storage.register_script(
-                RedisInteractor.SCRIPT_MOVING_WINDOW
-            )
-            self.lua_acquire_window = self.storage.register_script(
-                RedisInteractor.SCRIPT_ACQUIRE_MOVING_WINDOW
-            )
-            self.lua_clear_keys = self.storage.register_script(
-                RedisInteractor.SCRIPT_CLEAR_KEYS
-            )
-            self.lua_incr_expire = self.storage.register_script(
-                RedisInteractor.SCRIPT_INCR_EXPIRE
-            )
+        def _maybee_do_init(f):
+            @functools.wraps(f)
+            def wrapper(self, *args, **kwargs):
+                if self.storage is None:
+                    from ..redisclient import store
+                    self.storage = store
+                    self.lua_moving_window = self.storage.register_script(
+                        RedisInteractor.SCRIPT_MOVING_WINDOW
+                    )
+                    self.lua_acquire_window = self.storage.register_script(
+                        RedisInteractor.SCRIPT_ACQUIRE_MOVING_WINDOW
+                    )
+                    self.lua_clear_keys = self.storage.register_script(
+                        RedisInteractor.SCRIPT_CLEAR_KEYS
+                    )
+                    self.lua_incr_expire = self.storage.register_script(
+                        RedisInteractor.SCRIPT_INCR_EXPIRE
+                    )
+                return f(self, *args, **kwargs)
+            return wrapper
 
+        @_maybee_do_init
         def incr(self, key, expiry, elastic_expiry=False):
             if elastic_expiry:
                 return super(redisclient_storage, self).incr(
@@ -51,27 +59,31 @@ def get_limiter(app):
             else:
                 return self.lua_incr_expire([key], [expiry])
 
+        @_maybee_do_init
         def get(self, key):
             return super(redisclient_storage, self).get(key, self.storage)
 
+        @_maybee_do_init
         def acquire_entry(self, key, limit, expiry, no_add=False):
             return super(redisclient_storage, self).acquire_entry(
                 key, limit, expiry, self.storage, no_add=no_add
             )
 
+        @_maybee_do_init
         def get_expiry(self, key):
             return super(redisclient_storage, self).get_expiry(key,
                                                                self.storage)
 
+        @_maybee_do_init
         def check(self):
             return super(redisclient_storage, self).check(self.storage)
 
+        @_maybee_do_init
         def reset(self):
             cleared = self.lua_clear_keys(['LIMITER*'])
             return cleared
 
     redis_url = "rcs://"
-
     limiter = Limiter(
         app,
         key_func=get_remote_address,

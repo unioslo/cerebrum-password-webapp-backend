@@ -18,6 +18,7 @@ from ..template import add_template, get_localized_template
 from ..sms import send_sms
 from ..stats import statsd
 from .utils import input_schema, not_empty_validator
+from .limits import exponential_ratelimit, get_limiter
 from ..apierror import ApiError
 
 
@@ -45,6 +46,7 @@ add_template('sms-usernames',
 
 
 @API.route('/list-usernames', methods=['POST'])
+@exponential_ratelimit()
 @require_recaptcha()
 @input_schema(IdentitySchema)
 def list_for_person(data):
@@ -92,3 +94,6 @@ def list_for_person(data):
 def init_api(app):
     """ Register blueprint. """
     app.register_blueprint(API)
+
+    limiter = get_limiter(app)
+    limiter.limit('10/minute')(list_for_person)

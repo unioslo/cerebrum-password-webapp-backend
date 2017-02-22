@@ -87,7 +87,8 @@ def get_limiter(app):
     limiter = Limiter(
         app,
         key_func=get_remote_address,
-        storage_uri=redis_url)
+        storage_uri=redis_url,
+        strategy='moving-window')
     for handler in app.logger.handlers:
         limiter.logger.addHandler(handler)
 

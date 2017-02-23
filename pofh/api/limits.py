@@ -93,7 +93,7 @@ def get_limiter(app):
         limiter.logger.addHandler(handler)
 
     def e():
-        raise RateLimitError
+        raise RateLimitError()
 
     limiter.limit = functools.partial(limiter.limit, error_message=e)
 
@@ -106,7 +106,6 @@ RATE_LIMIT_PREFIX = 'rate-limit'
 class RateLimitError(apierror.ApiError):
     """Too Many Requests"""
     code = 429
-    details = "Try again soon."
 
 
 def exponential_ratelimit():

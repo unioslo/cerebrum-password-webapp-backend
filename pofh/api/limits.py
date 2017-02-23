@@ -106,7 +106,6 @@ RATE_LIMIT_PREFIX = 'rate-limit'
 class RateLimitError(apierror.ApiError):
     """Too Many Requests"""
     code = 429
-    details = "Try again soon."
 
 
 def exponential_ratelimit():

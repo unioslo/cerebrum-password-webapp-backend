@@ -93,7 +93,7 @@ def get_limiter(app):
         limiter.logger.addHandler(handler)
 
     def e():
-        raise RateLimitError
+        raise RateLimitError()
 
     limiter.limit = functools.partial(limiter.limit, error_message=e)
 

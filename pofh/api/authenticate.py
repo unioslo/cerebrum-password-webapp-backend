@@ -14,6 +14,7 @@ from ..auth import encode_token
 from ..idm import get_idm_client
 from ..recaptcha import require_recaptcha
 from .utils import input_schema
+from .limits import exponential_ratelimit, get_limiter
 from ..apierror import ApiError
 from .password import create_password_token
 from .utils import route_value_validator, not_empty_validator
@@ -38,6 +39,7 @@ class BasicAuthError(ApiError):
 
 
 @API.route('/authenticate', methods=['POST'])
+@exponential_ratelimit()
 @require_recaptcha()
 @input_schema(BasicAuthSchema)
 def authenticate(data):
@@ -58,7 +60,6 @@ def authenticate(data):
 
     """
     # TODO: Record start time for stats?
-    # TODO: Should we implement rate limiting here?
     client = get_idm_client()
 
     if not client.can_authenticate(data["username"]):
@@ -78,3 +79,6 @@ def authenticate(data):
 def init_api(app):
     """ Register API blueprint. """
     app.register_blueprint(API)
+
+    limiter = get_limiter(app)
+    limiter.limit('10/minute')(authenticate)

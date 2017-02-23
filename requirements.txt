@@ -1,6 +1,7 @@
 werkzeug >= 0.9
 flask >= 0.11
 flask-cors
+flask-limiter
 marshmallow
 uwsgi
 six
@@ -17,3 +18,4 @@ mockredispy
 statsd >= 3.0
 python-dateutil
 gunicorn
+pyyaml

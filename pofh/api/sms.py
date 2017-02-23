@@ -56,6 +56,7 @@ from ..sms.dispatcher import FilterException
 from ..recaptcha import require_recaptcha
 from ..template import add_template, get_localized_template
 from .utils import input_schema, route_value_validator, not_empty_validator
+from .limits import exponential_ratelimit, get_limiter
 from ..apierror import ApiError
 from ..redisclient import store
 from ..stats import statsd
@@ -156,6 +157,7 @@ def clear_nonce(identifier):
 
 
 @API.route('', methods=['POST'])
+@exponential_ratelimit()
 @require_recaptcha()
 @input_schema(SmsIdentitySchema)
 def identify(data):
@@ -250,6 +252,7 @@ def identify(data):
 
 
 @API.route('/verify', methods=['POST', ])
+@exponential_ratelimit()
 @auth.require_jwt(namespaces=[NS_VERIFY_NONCE, ])
 @input_schema(NonceSchema)
 def verify_code(data):
@@ -340,3 +343,7 @@ def init_api(app):
     if app.debug:
         API.route('/test-template')(test_template)
     app.register_blueprint(API)
+
+    limiter = get_limiter(app)
+    limiter.limit('10/minute')(verify_code)
+    limiter.limit('10/minute')(identify)

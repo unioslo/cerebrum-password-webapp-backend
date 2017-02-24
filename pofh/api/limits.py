@@ -118,9 +118,10 @@ def exponential_ratelimit():
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             from ..redisclient import store
-            scope = "{}:{}:{}".format(RATE_LIMIT_PREFIX,
-                                      func.__name__,
-                                      request.remote_addr)
+            scope = "{}:{}.{}:{}".format(RATE_LIMIT_PREFIX,
+                                         func.__module__,
+                                         func.__name__,
+                                         request.remote_addr)
             state = store.get(scope)
             ok = False
             if not state:

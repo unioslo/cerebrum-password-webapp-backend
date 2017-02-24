@@ -214,8 +214,7 @@ class WsgiApp(object):
             static_folder=None,
             instance_relative_config=True)
 
-        app.wsgi_app = ProxyFix(app.wsgi_app)
-
+        app.wsgi_app = ProxyFix(app.wsgi_app, num_proxies=2)
 
         init_config(app, config)
         init_logging(app)

@@ -238,7 +238,7 @@ def identify(data):
     message = render_template(
         template,
         code=nonce,
-        minutes=expire.total_seconds()//60)
+        minutes=int(expire.total_seconds()//60))
     if not send_sms(data["mobile"], message):
         raise ServiceUnavailable(details={'reason': 'cannot-send-sms'})
 

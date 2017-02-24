@@ -214,7 +214,10 @@ class WsgiApp(object):
             static_folder=None,
             instance_relative_config=True)
 
-        app.wsgi_app = ProxyFix(app.wsgi_app, num_proxies=2)
+        if app.config.get('NUMBER_OF_PROXIES', None):
+            app.wsgi_app = ProxyFix(app.wsgi_app,
+                                    num_proxies=app.config.get(
+                                        'NUMBER_OF_PROXIES'))
 
         init_config(app, config)
         init_logging(app)

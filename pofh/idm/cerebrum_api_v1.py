@@ -372,11 +372,11 @@ class CerebrumClient(client.IdmClient):
             raise IdmClientException('inactive-account')
         if self._account_is_quarantined(username):
             raise IdmClientException('quarantined')
-        if self._account_is_sysadm_account(username):
-            raise IdmClientException('reserved-sysadm-account')
+        if self._account_is_reserved(username):
+            raise IdmClientException('reserved-account')
         if any(self.is_reserved_group(name) for name
                in self._get_group_memberships(username)):
-            raise IdmClientException('reserved-by-group-membership')
+            raise IdmClientException('reserved-account')
         if self._account_is_self_reserved(username):
             raise IdmClientException('reserved-by-self')
         return True
@@ -447,10 +447,11 @@ class CerebrumClient(client.IdmClient):
                 return True
         return False
 
-    def _account_is_sysadm_account(self, username):
-        """ Check if an account is used for system administration. """
+    def _account_is_reserved(self, username):
+        """ Check if an account is reserved from using the SMS service. """
         traits = self._get_traits(username=username)
-        if any(trait.get('trait') == 'sysadm_account' for trait in traits):
+        if any(trait.get('trait') in ('sysadm_account', 'important_acc')
+               for trait in traits):
             return True
         return False
 

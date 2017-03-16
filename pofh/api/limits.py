@@ -132,6 +132,12 @@ def exponential_ratelimit():
             if ok:
                 return func(*args, **kwargs)
             else:
+                from flask import current_app
+                current_app.logger.warn(
+                    'ratelimit exponential ({}) exceeded at endpoint: '
+                    '{}.{}'.format(request.remote_addr,
+                                   func.__module__,
+                                   func.__name__))
                 raise RateLimitError()
         return wrapper
     return w

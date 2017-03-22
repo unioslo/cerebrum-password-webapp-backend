@@ -152,7 +152,7 @@ def test_can_use_sms_service(client, data):
             client._build_url(client._ACCOUNT_GROUPS.format(username='foo')),
             text=json.dumps({'groups': [{'name': 'foobar'}]}))
         client.can_use_sms_service(1, 'foo')
-    assert str(exc.value) == 'reserved-by-group-membership'
+    assert str(exc.value) == 'reserved-account'
 
     # No groups
     data.get(client._build_url(client._ACCOUNT_GROUPS.format(username='bar')),
@@ -170,14 +170,14 @@ def test_can_use_sms_service(client, data):
         client.can_use_sms_service(1, 'bar')
     assert str(exc.value) == 'reserved-by-self'
 
-    # Reserved for being a sysadm account
+    # Reserved for some other reason
     with pytest.raises(IdmClientException) as exc:
         data.get(
             client._build_url(client._ACCOUNT_TRAITS.format(username='bar')),
             text=json.dumps({'traits': [{'trait': 'sysadm_account'}]}))
         del client._cache['traits-bar']
         client.can_use_sms_service(1, 'bar')
-    assert str(exc.value) == 'reserved-sysadm-account'
+    assert str(exc.value) == 'reserved-account'
 
     # Unacceptable quarantine
     data.get(

@@ -520,6 +520,7 @@ class CerebrumClient(client.IdmClient):
             return [item["value"] for item in contacts
                     if item['source_system'] == source_system and
                     self.is_valid_contact(item, fresh_entity=fresh)]
+        return []
 
     def get_preferred_mobile_number(self, person_id):
         """ Fetch the phone number to use when sending usernames by SMS.

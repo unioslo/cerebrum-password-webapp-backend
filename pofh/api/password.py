@@ -9,7 +9,7 @@ from __future__ import unicode_literals, absolute_import
 
 import datetime
 import blinker
-from flask import g, Blueprint
+from flask import g, current_app, Blueprint
 from marshmallow import fields, Schema
 
 from .. import auth
@@ -70,6 +70,8 @@ def change_password(data):
     username = g.current_token.identity
     client = get_idm_client()
 
+    g.log.bind(username=username)
+
     # Check if new password is good enough
     if not client.check_new_password(username, data["password"]):
         # TODO: Include errors (broken rules) from idm?
@@ -77,6 +79,7 @@ def change_password(data):
 
     client.set_new_password(username, data["password"])
     signal_password_changed.send(None)
+    g.log.info('password-changed')
 
     # TODO: Invalidate token?
     #  - we should keep a blacklist with used tokens in our redis store

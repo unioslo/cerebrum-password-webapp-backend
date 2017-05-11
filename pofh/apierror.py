@@ -2,7 +2,7 @@
 """ Custom API Errors and error handler. """
 import blinker
 from six import with_metaclass
-from flask import jsonify, current_app
+from flask import jsonify, g
 
 
 class ApiErrorType(type):
@@ -97,7 +97,10 @@ certain types). The exception itself is sent as a keyword argument,
 
 
 def _handle(error):
-    current_app.logger.debug("API error: {!r}".format(error))
+    g.log.info("api-error",
+               error_type=error.error_type,
+               error_code=error.code,
+               error_details=error.details)
     signal_api_error.send(type(error), exception=error)
     return error.get_response()
 

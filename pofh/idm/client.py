@@ -129,7 +129,7 @@ class MockClient(IdmClient):
                 "users": ["foo", "bar"],
                 "mobile": ["+4720000000", "+4720000001", "+4791000000"],
             },
-            "2": {
+            "222222": {
                 "users": ["baz"],
                 "mobile": ["+4720000002"],
                 "can_show_usernames": False,
@@ -143,6 +143,10 @@ class MockClient(IdmClient):
             "bar": {
                 "password": "hunter2",
                 "can_use_sms": False,
+            },
+            "baz": {
+                "password": "hunter2",
+                "can_use_sms": True,
             }
         }
     }
@@ -154,7 +158,8 @@ class MockClient(IdmClient):
         else:
             self.load_data(data)
 
-    _valid_passwords = ["hunter2", "password1", "fido5", "secret"]
+    _valid_passwords = ["hunter2", "password1", "fido5", "secret",
+                        "testtesttesttesttest"]
 
     def load_data(self, data):
         for name, info in data.get("users", {}).items():
@@ -180,6 +185,7 @@ class MockClient(IdmClient):
         return None
 
     def get_usernames(self, person_id):
+        return ['baz']
         try:
             return self._db["persons"][person_id]["users"]
         except KeyError:

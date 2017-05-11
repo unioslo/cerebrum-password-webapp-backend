@@ -190,6 +190,10 @@ def identify(data):
     client = get_idm_client()
     person_id = client.get_person(data["identifier_type"], data["identifier"])
 
+    g.log.bind(username=data['username'],
+               mobile=data['mobile'],
+               person_id=person_id)
+
     if person_id is None:
         raise NotFoundError()
 
@@ -245,6 +249,7 @@ def identify(data):
     # TODO: Re-use existing jti?
     token = JWTAuthToken.new(namespace=NS_VERIFY_NONCE,
                              identity=identifier)
+    g.log.info('nonce-created')
     return jsonify({
         'token': auth.encode_token(token),
         'href': url_for('.verify_code'),
@@ -283,6 +288,7 @@ def verify_code(data):
     # TODO: Invalidate previous token?
 
     token = create_password_token(username)
+    g.log.info('nonce-verified')
 
     return jsonify({
         'token': auth.encode_token(token),

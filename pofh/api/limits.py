@@ -4,7 +4,7 @@ from __future__ import unicode_literals, absolute_import
 
 import functools
 
-from flask import request
+from flask import request, g
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -132,12 +132,10 @@ def exponential_ratelimit():
             if ok:
                 return func(*args, **kwargs)
             else:
-                from flask import current_app
-                current_app.logger.warn(
-                    'ratelimit exponential ({}) exceeded at endpoint: '
-                    '{}.{}'.format(request.remote_addr,
-                                   func.__module__,
-                                   func.__name__))
+                g.log.warn('ratelimit',
+                           remote_addr=request.remote_addr,
+                           endpoint='{}.{}'.format(func.__module__,
+                                                   func.__name__))
                 raise RateLimitError()
         return wrapper
     return w

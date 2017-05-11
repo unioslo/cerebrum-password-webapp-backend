@@ -8,10 +8,13 @@ from __future__ import print_function, unicode_literals, absolute_import
 
 import os
 from flask import app as flask_app_module
+from flask import g
 from flask_cors import CORS
 from werkzeug.contrib.fixers import ProxyFix
 import logging
 import logging.config
+import structlog
+import uuid
 
 from . import api
 from . import auth
@@ -194,6 +197,22 @@ def init_logging(app):
         print(
             "Logging: Level {!s}".format(
                 logging.getLevelName(app.logger.getEffectiveLevel())))
+
+    logger = structlog.get_logger()
+
+    structlog.configure(
+        processors=[
+            structlog.processors.KeyValueRenderer(
+                key_order=["event", "request_id"],
+            ),
+        ],
+        context_class=structlog.threadlocal.wrap_dict(dict),
+        logger_factory=structlog.stdlib.LoggerFactory()
+    )
+
+    @app.before_request
+    def before_request():
+        g.log = logger.new(request_id=str(uuid.uuid4()))
 
 
 class WsgiApp(object):

@@ -199,7 +199,7 @@ def _check_for_jwt():
     if not scheme:
         return
     if scheme != current_app.config['JWT_AUTH_SCHEME']:
-        current_app.logger.debug("Non-JWT auth header ({!s})".format(scheme))
+        g.log.debug('non-jwt-auth-header', scheme=scheme)
         return
 
     try:
@@ -207,18 +207,16 @@ def _check_for_jwt():
             data,
             get_secret(current_app),
             leeway=current_app.config['JWT_LEEWAY'])
-        current_app.logger.info(
-            "Valid JWT ({!r}))".format(g.current_token))
+        g.log.info('jwt-valid', token=g.current_token)
         signal_token_read.send(g.current_token, value=data)
     except InvalidTokenError as e:
-        current_app.logger.info("Invalid JWT: {!s}".format(e))
+        g.log.info('jwt-invalid', exception=e)
         error_info = {'raw': data, 'payload': None, 'decode_error': None, }
         try:
             error_info['payload'] = JWTAuthToken.jwt_debug(data)
         except DecodeError as decode_error:
             error_info['decode_error'] = decode_error
-        current_app.logger.debug(
-            "JWT payload={payload!r}, {decode_error!s}".format(**error_info))
+        g.log.debug('jwt-error', **error_info)
         signal_token_error.send(e, **error_info)
         raise Forbidden("Invalid token: {!s})".format(e))
 

@@ -21,7 +21,7 @@ from __future__ import absolute_import, unicode_literals
 
 import requests
 import phonenumbers
-from flask import current_app
+from flask import current_app, g
 from .dispatcher import SmsDispatcher
 
 
@@ -126,22 +126,21 @@ class UioGatewayDispatcher(SmsDispatcher):
 
     @staticmethod
     def _log_sms_pre(sender, **args):
-        current_app.logger.debug(
-            "SMS: Sending message to '{raw_number!s}'".format(**args))
+        g.log.debug('sms-pre-send', raw_number=args.get('raw_number'))
 
     @staticmethod
     def _log_sms_filtered(sender, **args):
+        g.log.info('sms-filtered', raw_number=args.get('raw_number'))
         current_app.logger.info(
             ("SMS: Invalid or non-whitelisted number "
              "'{raw_number!s}'").format(**args))
 
     @staticmethod
     def _log_sms_error(sender, **args):
-        current_app.logger.error(
-            ("SMS: Sending to '{raw_number!s}' "
-             "failed: {error!s}").format(**args))
+        g.log.error('sms-sending-failed',
+                    raw_number=args.get('raw_number'),
+                    error=args.get('error'))
 
     @staticmethod
     def _log_sms_sent(sender, **args):
-        current_app.logger.debug(
-            "SMS: Sent message to '{raw_number!s}'".format(**args))
+        g.log.debug('sms-sent', raw_number=args.get('raw_number'))

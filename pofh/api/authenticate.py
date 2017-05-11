@@ -7,7 +7,7 @@ and password, and get a JWT that allows them to set a new password.
 """
 from __future__ import unicode_literals, absolute_import
 
-from flask import jsonify, url_for, Blueprint
+from flask import jsonify, url_for, Blueprint, g
 from marshmallow import fields, Schema
 
 from ..auth import encode_token
@@ -62,6 +62,8 @@ def authenticate(data):
     # TODO: Record start time for stats?
     client = get_idm_client()
 
+    g.log.bind(username=data['username'])
+
     if not client.can_authenticate(data["username"]):
         raise BasicAuthError()
 
@@ -69,6 +71,8 @@ def authenticate(data):
         raise BasicAuthError()
 
     token = create_password_token(data["username"])
+
+    g.log.info('authenticated')
 
     return jsonify({
         'token': encode_token(token),
@@ -80,5 +84,5 @@ def init_api(app):
     """ Register API blueprint. """
     app.register_blueprint(API)
 
-    limiter = get_limiter(app)
-    limiter.limit('10/minute')(authenticate)
+    #limiter = get_limiter(app)
+    #limiter.limit('10/minute')(authenticate)

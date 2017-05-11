@@ -4,7 +4,7 @@ from __future__ import unicode_literals, absolute_import
 
 import functools
 
-from flask import request, g
+from flask import request, g, current_app
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -117,6 +117,8 @@ def exponential_ratelimit():
     def w(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
+            if not current_app.config.get('RATELIMIT_ENABLED', True):
+                return func(*args, **kwargs)
             from ..redisclient import store
             scope = "{}:{}.{}:{}".format(RATE_LIMIT_PREFIX,
                                          func.__module__,

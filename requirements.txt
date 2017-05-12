@@ -20,4 +20,3 @@ python-dateutil
 gunicorn
 pyyaml
 structlog
-structlog

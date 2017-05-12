@@ -175,7 +175,7 @@ def autoset_context_language():
     add_lang(default)
     add_lang(default.language)
 
-    current_app.logger.debug("Languages: {!r}".format(g._pofh_language.keys()))
+    g.log.debug("language-set", languages=(g._pofh_language.keys()))
 
 
 def get_language():

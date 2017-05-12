@@ -16,6 +16,7 @@ class DefaultConfig(pofh.DefaultConfig):
     JWT_LEEWAY = 5
     SMS_DISPATCHER = 'mock'
     REDIS_URL = 'mock://example.com'
+    RATELIMIT_ENABLED = False
 
 
 @pytest.fixture

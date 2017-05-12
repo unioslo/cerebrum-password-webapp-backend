@@ -7,9 +7,7 @@ identifying themselves.
 """
 from __future__ import unicode_literals, absolute_import
 
-from flask import jsonify
-from flask import Blueprint
-from flask import render_template
+from flask import Blueprint, jsonify, render_template, g
 from marshmallow import fields, Schema
 
 from ..idm import get_idm_client
@@ -71,6 +69,7 @@ def list_for_person(data):
     if person_id is None:
         raise NotFoundError()
 
+    g.log.bind(person_id=person_id)
     usernames = client.get_usernames(person_id)
 
     if not usernames:
@@ -83,11 +82,13 @@ def list_for_person(data):
         if recipient:
             try:
                 send_sms(recipient, message)
+                g.log.info('list-usernames', method='sms', recipient=recipient)
             except:
                 pass
         raise NotFoundError()
 
     statsd.incr(USERNAME_METRIC_INIT)
+    g.log.info('list-usernames', method='app')
     return jsonify({'usernames': usernames, })
 
 

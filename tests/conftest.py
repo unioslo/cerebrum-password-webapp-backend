@@ -16,8 +16,10 @@ def dummy_fixture():
 @pytest.fixture
 def config():
     """ Application config. """
-    config_ = object()
-    return config_
+    class Config(object):
+        TESTING = True
+        RATELIMIT_ENABLED = False
+    return Config()
 
 
 @pytest.fixture

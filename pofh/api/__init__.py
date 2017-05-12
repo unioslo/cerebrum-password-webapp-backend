@@ -2,7 +2,7 @@
 """ The password app API. """
 from __future__ import unicode_literals, absolute_import
 
-from flask import g, jsonify, current_app, request
+from flask import g, jsonify, request
 import werkzeug.exceptions as _exc
 from blinker import signal
 from .. import auth
@@ -45,9 +45,8 @@ def log_request():
     if g.current_token is not None:
         jti = g.current_token.jti
 
-    current_app.logger.info(
-        "Request {!s} {!s} jti='{!s}'".format(
-            request.method, request.url_rule, jti))
+    g.log.info("request", method=request.method, url=str(request.url_rule),
+               jti=jti, remote_addr=request.remote_addr)
 
 
 def init_app(app):
@@ -82,5 +81,5 @@ def init_app(app):
 
         """
         g.current_token.renew()
-        current_app.logger.info("Renewed token: {!s}".format(g.current_token.jti))
+        g.log.info("token-renewed", jti=g.current_token.jti)
         return jsonify({'token': auth.encode_token(g.current_token), })

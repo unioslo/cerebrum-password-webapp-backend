@@ -126,10 +126,12 @@ class MockClient(IdmClient):
     _default_db = {
         "persons": {
             "1": {
+                "studentNumber": "111111",
                 "users": ["foo", "bar"],
                 "mobile": ["+4720000000", "+4720000001", "+4791000000"],
             },
             "2": {
+                "studentNumber": "222222",
                 "users": ["baz"],
                 "mobile": ["+4720000002"],
                 "can_show_usernames": False,
@@ -143,6 +145,9 @@ class MockClient(IdmClient):
             "bar": {
                 "password": "hunter2",
                 "can_use_sms": False,
+            },
+            "baz": {
+                "password": "hunter2",
             }
         }
     }
@@ -154,7 +159,8 @@ class MockClient(IdmClient):
         else:
             self.load_data(data)
 
-    _valid_passwords = ["hunter2", "password1", "fido5", "secret"]
+    _valid_passwords = ["hunter2", "password1", "fido5", "secret",
+                        "testtesttesttesttest"]
 
     def load_data(self, data):
         for name, info in data.get("users", {}).items():
@@ -177,6 +183,9 @@ class MockClient(IdmClient):
     def get_person(self, idtype, idvalue):
         if idvalue in self._db["persons"]:
             return idvalue
+        for pid, data in self._db["persons"].items():
+            if data.get("studentNumber") == idvalue:
+                return pid
         return None
 
     def get_usernames(self, person_id):

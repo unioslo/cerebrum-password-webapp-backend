@@ -22,7 +22,7 @@ The following settings are used from the Flask configuration:
 from __future__ import unicode_literals
 
 from werkzeug.local import LocalProxy
-from flask import request, current_app
+from flask import request, current_app, g
 from flask import Blueprint, url_for, render_template
 from functools import wraps
 import requests
@@ -169,8 +169,8 @@ def require_recaptcha(field=DEFAULT_FIELD_NAME):
         @wraps(func)
         def wrapper(*args, **kwargs):
             if recaptcha.enabled:
-                current_app.logger.debug(
-                    "recaptcha: checking field '{!s}'".format(field))
+                g.log.debug(
+                    "recaptcha-checking-field", field=field)
                 if request.is_json:
                     data = request.get_json()
                 else:
@@ -178,16 +178,13 @@ def require_recaptcha(field=DEFAULT_FIELD_NAME):
                 if recaptcha.client(
                         data.get(field),
                         request.environ.get('REMOTE_ADDR')):
-                    current_app.logger.info("recaptcha: valid response")
+                    g.log.info("recaptcha-valid-response")
                 else:
-                    current_app.logger.info(
-                        "recaptcha: invalid response")
-                    current_app.logger.debug(
-                        "recaptcha: invalid response ({!s})".format(
-                            data.get(field)))
+                    g.log.info(
+                        "recaptcha-invalid-response", field=data.get(field))
                     raise InvalidRecaptcha()
             else:
-                current_app.logger.debug("recaptcha: disabled")
+                g.log.debug("recaptcha-disabled")
             return func(*args, **kwargs)
         return wrapper
     return wrap

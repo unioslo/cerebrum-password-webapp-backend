@@ -84,5 +84,5 @@ def init_api(app):
     """ Register API blueprint. """
     app.register_blueprint(API)
 
-    #limiter = get_limiter(app)
-    #limiter.limit('10/minute')(authenticate)
+    limiter = get_limiter(app)
+    limiter.limit('10/minute')(authenticate)
